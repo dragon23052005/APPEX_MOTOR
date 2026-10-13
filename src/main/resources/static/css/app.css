@@ -932,6 +932,40 @@ img {
     height: 100%;
 }
 
+.vehicle-viewer--enabled {
+    overflow: hidden;
+    background:
+        radial-gradient(ellipse at 51% 72%, rgba(151, 11, 20, .22) 0%, rgba(28, 8, 11, .08) 30%, transparent 56%),
+        radial-gradient(ellipse at 50% 34%, rgba(119, 132, 153, .11), transparent 38%),
+        linear-gradient(180deg, #030405 0%, #090b0e 58%, #020203 100%);
+}
+
+.vehicle-viewer--enabled::before {
+    position: absolute;
+    z-index: 0;
+    inset: 0;
+    content: "";
+    pointer-events: none;
+    opacity: .48;
+    background:
+        linear-gradient(90deg, transparent 13%, rgba(255, 255, 255, .045) 13.1%, transparent 13.25%),
+        linear-gradient(90deg, transparent 86%, rgba(255, 255, 255, .04) 86.1%, transparent 86.25%),
+        linear-gradient(180deg, transparent 69%, rgba(255, 255, 255, .055) 69.15%, transparent 69.35%);
+}
+
+.vehicle-viewer--enabled::after {
+    position: absolute;
+    z-index: 0;
+    left: 26%;
+    right: 26%;
+    bottom: 18%;
+    height: 1px;
+    content: "";
+    pointer-events: none;
+    background: linear-gradient(90deg, transparent, rgba(211, 19, 27, .58), transparent);
+    box-shadow: 0 0 30px rgba(211, 19, 27, .24);
+}
+
 .vehicle-viewer__fallback {
     z-index: 0;
     background: #090a0b;
@@ -941,6 +975,7 @@ img {
 .vehicle-viewer__canvas {
     z-index: 1;
     opacity: 0;
+    filter: saturate(.92) contrast(1.04);
     transition: opacity .65s ease;
 }
 

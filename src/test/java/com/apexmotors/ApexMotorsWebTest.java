@@ -53,7 +53,7 @@ class ApexMotorsWebTest {
             .andExpect(content().string(org.hamcrest.Matchers.containsString("/models/car-concept/CarConcept.glb")))
             .andExpect(content().string(org.hamcrest.Matchers.containsString("/vendor/three/build/three.module.min.js")))
             .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("three@0.186.1"))))
-            .andExpect(content().string(org.hamcrest.Matchers.containsString("vehicle-viewer-bootstrap.js?v=2.0.1")));
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("vehicle-viewer-bootstrap.js?v=2.1.0")));
 
         mockMvc.perform(get("/cars/ferrari-sf90-stradale"))
             .andExpect(status().isOk())

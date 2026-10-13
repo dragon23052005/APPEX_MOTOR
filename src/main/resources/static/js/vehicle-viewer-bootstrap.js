@@ -11,7 +11,7 @@ const showBootstrapError = () => {
     });
 };
 
-import('/js/vehicle-viewer.js?v=2.0.1')
+import('/js/vehicle-viewer.js?v=2.1.0')
     .then(({ initializeVehicleViewers }) => initializeVehicleViewers())
     .catch((error) => {
         console.error('APEX 3D viewer bootstrap failed.', error);

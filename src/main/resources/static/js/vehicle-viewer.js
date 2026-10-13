@@ -124,18 +124,19 @@ class VehicleViewer {
 
     createScene() {
         this.scene = new THREE.Scene();
-        this.camera = new THREE.PerspectiveCamera(38, 1, 0.05, 100);
-        this.defaultCameraPosition = new THREE.Vector3(6.8, 3.15, 7.8);
-        this.defaultTarget = new THREE.Vector3(0, 1.05, 0);
+        this.scene.fog = new THREE.FogExp2(0x050608, 0.028);
+        this.camera = new THREE.PerspectiveCamera(34, 1, 0.05, 100);
+        this.defaultCameraPosition = new THREE.Vector3(5.6, 1.75, 6.7);
+        this.defaultTarget = new THREE.Vector3(0, 0.72, 0);
         this.camera.position.copy(this.defaultCameraPosition);
 
         this.controls = new OrbitControls(this.camera, this.renderer.domElement);
         this.controls.enableDamping = !this.reducedMotion;
         this.controls.dampingFactor = 0.06;
         this.controls.enablePan = false;
-        this.controls.minDistance = 4.2;
-        this.controls.maxDistance = 12;
-        this.controls.minPolarAngle = Math.PI * 0.23;
+        this.controls.minDistance = 4.8;
+        this.controls.maxDistance = 13;
+        this.controls.minPolarAngle = Math.PI * 0.31;
         this.controls.maxPolarAngle = Math.PI * 0.49;
         this.controls.target.copy(this.defaultTarget);
         this.controls.update();
@@ -151,11 +152,11 @@ class VehicleViewer {
             else if (child.material) disposeMaterial(child.material);
         });
 
-        const ambient = new THREE.HemisphereLight(0xe9f0ff, 0x16100f, 1.25);
+        const ambient = new THREE.HemisphereLight(0xdce7f6, 0x090a0d, 0.82);
         this.scene.add(ambient);
 
-        const key = new THREE.DirectionalLight(0xffffff, 4.2);
-        key.position.set(5, 8, 5);
+        const key = new THREE.DirectionalLight(0xffffff, 5.8);
+        key.position.set(-3.5, 7, 5.5);
         key.castShadow = true;
         key.shadow.mapSize.set(window.innerWidth < 768 ? 1024 : 2048, window.innerWidth < 768 ? 1024 : 2048);
         key.shadow.camera.near = 0.5;
@@ -167,23 +168,54 @@ class VehicleViewer {
         key.shadow.bias = -0.00035;
         this.scene.add(key);
 
-        const fill = new THREE.DirectionalLight(0x8ea4c8, 2.1);
-        fill.position.set(-6, 3, -4);
+        const fill = new THREE.DirectionalLight(0x8aa6d2, 2.5);
+        fill.position.set(6, 2.5, -4);
         this.scene.add(fill);
 
-        const rim = new THREE.SpotLight(0xd3131b, 85, 24, Math.PI * 0.2, 0.55, 1.2);
-        rim.position.set(-4, 5, 6);
-        rim.target.position.set(0, 1, 0);
+        const rim = new THREE.SpotLight(0xe20f1b, 120, 26, Math.PI * 0.22, 0.6, 1.1);
+        rim.position.set(-5, 3.5, -4);
+        rim.target.position.set(0, 0.8, 0);
         this.scene.add(rim, rim.target);
 
         this.ground = new THREE.Mesh(
-            new THREE.PlaneGeometry(24, 24),
-            new THREE.ShadowMaterial({ color: 0x000000, opacity: 0.42 })
+            new THREE.PlaneGeometry(30, 30),
+            new THREE.MeshStandardMaterial({
+                color: 0x080a0d,
+                metalness: 0.72,
+                roughness: 0.3
+            })
         );
         this.ground.rotation.x = -Math.PI / 2;
         this.ground.receiveShadow = true;
-        this.ground.position.y = -0.012;
+        this.ground.position.y = -0.13;
         this.scene.add(this.ground);
+
+        this.platform = new THREE.Mesh(
+            new THREE.CylinderGeometry(4.9, 5.15, 0.12, 96),
+            new THREE.MeshPhysicalMaterial({
+                color: 0x12151a,
+                metalness: 0.86,
+                roughness: 0.2,
+                clearcoat: 0.65,
+                clearcoatRoughness: 0.16
+            })
+        );
+        this.platform.position.y = -0.065;
+        this.platform.receiveShadow = true;
+        this.scene.add(this.platform);
+
+        this.accentRing = new THREE.Mesh(
+            new THREE.RingGeometry(4.92, 5.06, 128),
+            new THREE.MeshBasicMaterial({
+                color: 0xb50d16,
+                transparent: true,
+                opacity: 0.38,
+                side: THREE.DoubleSide
+            })
+        );
+        this.accentRing.rotation.x = -Math.PI / 2;
+        this.accentRing.position.y = 0.002;
+        this.scene.add(this.accentRing);
     }
 
     bindEvents() {
@@ -214,7 +246,7 @@ class VehicleViewer {
         const originalBox = new THREE.Box3().setFromObject(this.model);
         const originalSize = originalBox.getSize(new THREE.Vector3());
         const maxDimension = Math.max(originalSize.x, originalSize.y, originalSize.z);
-        const scale = maxDimension > 0 ? 5.25 / maxDimension : 1;
+        const scale = maxDimension > 0 ? 7.15 / maxDimension : 1;
         this.model.scale.setScalar(scale);
 
         const box = new THREE.Box3().setFromObject(this.model);
@@ -229,16 +261,38 @@ class VehicleViewer {
             child.receiveShadow = true;
             const materials = Array.isArray(child.material) ? child.material : [child.material];
             materials.filter(Boolean).forEach((material) => {
-                if ('envMapIntensity' in material) material.envMapIntensity = 1.15;
+                if ('envMapIntensity' in material) material.envMapIntensity = 1.45;
+                this.applyApexMaterialFinish(material);
             });
         });
 
         const mountedBox = new THREE.Box3().setFromObject(this.model);
         const mountedSize = mountedBox.getSize(new THREE.Vector3());
-        this.controls.target.set(0, Math.max(0.8, mountedSize.y * 0.38), 0);
+        this.controls.target.set(0, Math.max(0.62, mountedSize.y * 0.32), 0);
         this.defaultTarget.copy(this.controls.target);
         this.scene.add(this.model);
         this.controls.update();
+    }
+
+    applyApexMaterialFinish(material) {
+        const name = material.name?.toLowerCase() || '';
+
+        if (name.includes('paint 1 carmine')) {
+            material.color?.setHex(0x11151b);
+            material.metalness = 0.82;
+            material.roughness = 0.18;
+            if ('clearcoat' in material) material.clearcoat = 1;
+            if ('clearcoatRoughness' in material) material.clearcoatRoughness = 0.1;
+        } else if (name.includes('paint 2 carmine')) {
+            material.color?.setHex(0x2b3139);
+            material.metalness = 0.74;
+            material.roughness = 0.22;
+        } else if (name.includes('interior 3 carmine')) {
+            material.color?.setHex(0x240307);
+            material.roughness = 0.34;
+        }
+
+        material.needsUpdate = true;
     }
 
     setLoadingProgress(progress) {
@@ -293,7 +347,7 @@ class VehicleViewer {
         const width = Math.max(1, this.stage.clientWidth);
         const height = Math.max(1, this.stage.clientHeight);
         this.camera.aspect = width / height;
-        this.camera.fov = width < 768 ? 52 : 38;
+        this.camera.fov = width < 768 ? 48 : 34;
         this.camera.updateProjectionMatrix();
         this.renderer.setSize(width, height, false);
         this.renderer.render(this.scene, this.camera);
@@ -335,6 +389,10 @@ class VehicleViewer {
         });
         this.ground?.geometry.dispose();
         this.ground?.material.dispose();
+        this.platform?.geometry.dispose();
+        this.platform?.material.dispose();
+        this.accentRing?.geometry.dispose();
+        this.accentRing?.material.dispose();
         this.environmentTexture?.dispose();
         this.renderer?.dispose();
         this.renderer?.forceContextLoss();
