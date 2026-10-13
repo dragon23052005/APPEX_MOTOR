@@ -7,8 +7,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.head;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -35,11 +37,26 @@ class ApexMotorsWebTest {
     }
 
     @Test
+    void collectionAcceptsUrlFriendlySortValues() throws Exception {
+        mockMvc.perform(get("/collection").param("manufacturer", "Ferrari").param("sort", "price-asc"))
+            .andExpect(status().isOk())
+            .andExpect(view().name("collection"))
+            .andExpect(model().attributeExists("vehicles"));
+    }
+
+    @Test
     void vehicleDetailsAndCustom404Render() throws Exception {
         mockMvc.perform(get("/cars/rimac-nevera"))
             .andExpect(status().isOk())
             .andExpect(view().name("car-details"))
-            .andExpect(content().string(org.hamcrest.Matchers.containsString("Nevera")));
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("Nevera")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("/models/car-concept/CarConcept.glb")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("vehicle-viewer-bootstrap.js")));
+
+        mockMvc.perform(get("/cars/ferrari-sf90-stradale"))
+            .andExpect(status().isOk())
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("3D not available for this vehicle")))
+            .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("vehicle-viewer-bootstrap.js"))));
 
         mockMvc.perform(get("/does-not-exist"))
             .andExpect(status().isNotFound())
@@ -66,5 +83,12 @@ class ApexMotorsWebTest {
                 .param("privacyAccepted", "true"))
             .andExpect(status().is3xxRedirection())
             .andExpect(redirectedUrl("/contact"));
+    }
+
+    @Test
+    void local3dAssetIsAvailableWithPublicCacheHeaders() throws Exception {
+        mockMvc.perform(head("/models/car-concept/CarConcept.glb"))
+            .andExpect(status().isOk())
+            .andExpect(header().string("Cache-Control", org.hamcrest.Matchers.containsString("max-age=2592000")));
     }
 }

@@ -836,6 +836,8 @@ img {
 }
 
 .detail-hero__shade {
+    z-index: 2;
+    pointer-events: none;
     background: linear-gradient(0deg, rgba(5, 5, 6, .9) 0%, transparent 52%), linear-gradient(90deg, rgba(5, 5, 6, .35), transparent 50%);
 }
 
@@ -843,7 +845,7 @@ img {
     position: absolute;
     top: calc(var(--nav-h) + 35px);
     right: 32px;
-    z-index: 1;
+    z-index: 5;
     padding: 8px 11px;
     border: 1px solid rgba(255, 255, 255, .2);
     background: rgba(0, 0, 0, .35);
@@ -866,13 +868,18 @@ img {
 
 .detail-hero__content {
     position: relative;
-    z-index: 2;
+    z-index: 3;
     height: 100%;
     display: flex;
     align-items: flex-end;
     justify-content: space-between;
     gap: 50px;
     padding-bottom: 60px;
+    pointer-events: none;
+}
+
+.detail-hero__content a {
+    pointer-events: auto;
 }
 
 .back-link {
@@ -915,6 +922,240 @@ img {
     font-family: var(--display);
     font-size: 1.35rem;
     font-weight: 500;
+}
+
+.vehicle-viewer__fallback,
+.vehicle-viewer__canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.vehicle-viewer__fallback {
+    z-index: 0;
+    background: #090a0b;
+    transition: opacity .65s ease, visibility .65s ease;
+}
+
+.vehicle-viewer__canvas {
+    z-index: 1;
+    opacity: 0;
+    transition: opacity .65s ease;
+}
+
+.vehicle-viewer__webgl {
+    display: block;
+    width: 100%;
+    height: 100%;
+    outline: none;
+    cursor: grab;
+    touch-action: none;
+}
+
+.vehicle-viewer.is-viewer-interacting .vehicle-viewer__webgl {
+    cursor: grabbing;
+}
+
+.vehicle-viewer.is-3d-ready .vehicle-viewer__fallback {
+    opacity: 0;
+    visibility: hidden;
+}
+
+.vehicle-viewer.is-3d-ready .vehicle-viewer__canvas {
+    opacity: 1;
+}
+
+.vehicle-viewer.has-viewer-error .vehicle-viewer__fallback {
+    opacity: 1;
+    visibility: visible;
+}
+
+.vehicle-viewer__loading {
+    position: absolute;
+    z-index: 5;
+    top: 50%;
+    left: 50%;
+    display: flex;
+    flex-direction: column;
+    gap: 17px;
+    align-items: center;
+    color: #d0d2d5;
+    font-family: var(--display);
+    font-size: .63rem;
+    font-weight: 600;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    transform: translate(-50%, -50%);
+}
+
+.vehicle-viewer__loading[hidden],
+.vehicle-viewer__error[hidden],
+.vehicle-viewer__toolbar[hidden],
+.vehicle-viewer__hint[hidden] {
+    display: none;
+}
+
+.viewer-loader {
+    width: 42px;
+    height: 42px;
+    border: 1px solid rgba(255, 255, 255, .25);
+    border-top-color: var(--vehicle-accent);
+    border-radius: 50%;
+    animation: viewer-spin .85s linear infinite;
+}
+
+@keyframes viewer-spin {
+    to { transform: rotate(360deg); }
+}
+
+.vehicle-viewer__error {
+    position: absolute;
+    z-index: 5;
+    top: 50%;
+    left: 50%;
+    width: min(420px, calc(100% - 40px));
+    padding: 28px 30px;
+    border: 1px solid rgba(255, 255, 255, .18);
+    background: rgba(10, 10, 11, .88);
+    text-align: center;
+    transform: translate(-50%, -50%);
+    backdrop-filter: blur(16px);
+}
+
+.vehicle-viewer__error strong,
+.vehicle-viewer__error span {
+    display: block;
+}
+
+.vehicle-viewer__error strong {
+    font: 600 1.2rem var(--display);
+}
+
+.vehicle-viewer__error span {
+    margin: 8px 0 20px;
+    color: #94979b;
+    font-size: .8rem;
+}
+
+.vehicle-viewer__error button,
+.vehicle-viewer__toolbar button {
+    border: 1px solid rgba(255, 255, 255, .3);
+    background: transparent;
+    color: #fff;
+    font-family: var(--display);
+    font-size: .62rem;
+    font-weight: 600;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    transition: border-color .25s, background .25s;
+}
+
+.vehicle-viewer__error button {
+    padding: 10px 16px;
+}
+
+.vehicle-viewer__error button:hover,
+.vehicle-viewer__toolbar button:hover {
+    border-color: var(--vehicle-accent);
+    background: rgba(211, 19, 27, .2);
+}
+
+.vehicle-viewer__toolbar {
+    position: absolute;
+    z-index: 5;
+    top: calc(var(--nav-h) + 28px);
+    right: 32px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.vehicle-viewer__toolbar>span {
+    padding: 10px 13px;
+    border: 1px solid rgba(255, 255, 255, .2);
+    background: rgba(0, 0, 0, .4);
+    color: #c4c7ca;
+    font-size: .6rem;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    backdrop-filter: blur(9px);
+}
+
+.vehicle-viewer__toolbar>span i {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    margin-right: 7px;
+    border-radius: 50%;
+    background: #60da8a;
+    box-shadow: 0 0 9px rgba(96, 218, 138, .8);
+}
+
+.vehicle-viewer__toolbar button {
+    display: inline-flex;
+    gap: 8px;
+    align-items: center;
+    padding: 9px 12px;
+    background: rgba(0, 0, 0, .4);
+    backdrop-filter: blur(9px);
+}
+
+.vehicle-viewer__toolbar svg {
+    width: 15px;
+    height: 15px;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.6;
+    transition: transform .35s;
+}
+
+.vehicle-viewer.has-just-reset .vehicle-viewer__toolbar svg {
+    transform: rotate(-360deg);
+}
+
+.vehicle-viewer__hint {
+    position: absolute;
+    z-index: 5;
+    right: 32px;
+    bottom: 34px;
+    margin: 0;
+    color: #aaaeb2;
+    font-size: .61rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    transition: opacity .25s;
+}
+
+.vehicle-viewer.is-viewer-interacting .vehicle-viewer__hint {
+    opacity: .35;
+}
+
+.model-credit {
+    padding: 13px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, .08);
+    background: #161719;
+    color: #707378;
+    font-size: .62rem;
+    letter-spacing: .04em;
+}
+
+.model-credit .container-wide {
+    display: flex;
+    justify-content: space-between;
+    gap: 30px;
+}
+
+.model-credit strong {
+    color: #a9acb0;
+    font-weight: 500;
+}
+
+.model-credit a {
+    border-bottom: 1px solid #55585c;
+    color: #c7c9cc;
 }
 
 .spec-strip {
@@ -1647,6 +1888,26 @@ img {
 
     .viewer-ready {
         right: 16px;
+    }
+
+    .vehicle-viewer__toolbar {
+        top: calc(var(--nav-h) + 20px);
+        right: 16px;
+    }
+
+    .vehicle-viewer__toolbar>span {
+        display: none;
+    }
+
+    .vehicle-viewer__hint {
+        right: 16px;
+        bottom: 18px;
+        font-size: .54rem;
+    }
+
+    .model-credit .container-wide {
+        flex-direction: column;
+        gap: 4px;
     }
 
     .spec-grid {

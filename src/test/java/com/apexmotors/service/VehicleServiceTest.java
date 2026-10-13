@@ -44,4 +44,14 @@ class VehicleServiceTest {
         assertThatThrownBy(() -> vehicleService.getBySlug("not-a-car"))
             .isInstanceOf(VehicleNotFoundException.class);
     }
+
+    @Test
+    void exposesOptional3dModelMetadataWithoutChangingOtherVehicles() {
+        Vehicle nevera = vehicleService.getBySlug("rimac-nevera");
+        Vehicle ferrari = vehicleService.getBySlug("ferrari-sf90-stradale");
+
+        assertThat(nevera.hasModel3d()).isTrue();
+        assertThat(nevera.getModel3d().path()).endsWith("CarConcept.glb");
+        assertThat(ferrari.hasModel3d()).isFalse();
+    }
 }

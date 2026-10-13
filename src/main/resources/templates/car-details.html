@@ -6,10 +6,35 @@
 
 <main>
     <section class="detail-hero" th:style="'--vehicle-accent:' + ${vehicle.accent}">
-        <div class="detail-hero__media" data-three-stage aria-label="Future interactive vehicle viewer">
-            <img th:src="${vehicle.imagePath}" th:alt="${vehicle.displayName}">
+        <div class="detail-hero__media vehicle-viewer"
+             data-three-stage
+             th:classappend="${vehicle.model3d != null} ? ' vehicle-viewer--enabled' : ' vehicle-viewer--fallback'"
+             th:attr="data-model-url=${vehicle.model3d != null ? vehicle.model3d.path : null},
+                      data-initial-yaw=${vehicle.model3d != null ? vehicle.model3d.initialYawDegrees : null}"
+             th:aria-label="${vehicle.model3d != null ? 'Interactive 3D concept visualization for ' + vehicle.displayName : 'Studio image of ' + vehicle.displayName}">
+            <div class="vehicle-viewer__fallback">
+                <img th:src="${vehicle.imagePath}" th:alt="${vehicle.displayName}">
+            </div>
+            <div class="vehicle-viewer__canvas" data-viewer-canvas aria-hidden="true"></div>
             <div class="detail-hero__shade"></div>
-            <span class="viewer-ready"><i></i> Visual stage · 3D-ready structure</span>
+            <div th:if="${vehicle.model3d != null}" class="vehicle-viewer__loading" data-viewer-loading role="status" aria-live="polite">
+                <span class="viewer-loader" aria-hidden="true"></span>
+                <span data-viewer-loading-text>Preparing 3D studio · 0%</span>
+            </div>
+            <div th:if="${vehicle.model3d != null}" class="vehicle-viewer__error" data-viewer-error role="alert" hidden>
+                <strong>3D studio unavailable</strong>
+                <span data-viewer-error-message>The studio image remains available.</span>
+                <button type="button" data-viewer-retry>Try again</button>
+            </div>
+            <div th:if="${vehicle.model3d != null}" class="vehicle-viewer__toolbar" data-viewer-toolbar hidden>
+                <span><i></i> Interactive 3D</span>
+                <button type="button" data-viewer-reset aria-label="Reset 3D camera">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.9 7.1A8 8 0 1 1 4 14M4.9 7.1V3m0 4.1H9"/></svg>
+                    Reset view
+                </button>
+            </div>
+            <p th:if="${vehicle.model3d != null}" class="vehicle-viewer__hint" data-viewer-hint hidden>Drag to rotate · Scroll or pinch to zoom</p>
+            <span th:unless="${vehicle.model3d != null}" class="viewer-ready"><i></i> Studio image · 3D not available for this vehicle</span>
         </div>
         <div class="detail-hero__content container-wide">
             <a class="back-link" th:href="@{/collection}">← Back to collection</a>
@@ -33,6 +58,17 @@
             <div><small>Model year</small><strong th:text="${vehicle.year}">2025</strong></div>
         </div>
     </section>
+
+    <aside th:if="${vehicle.model3d != null}" class="model-credit" aria-label="3D model attribution">
+        <div class="container-wide">
+            <span>Representative concept visualization — not the exact production vehicle.</span>
+            <span>
+                <strong th:text="${vehicle.model3d.displayName}">Car Concept</strong>
+                by <span th:text="${vehicle.model3d.attribution}">Creator</span>
+                · <a th:href="${vehicle.model3d.sourceUrl}" target="_blank" rel="noopener noreferrer" th:text="${vehicle.model3d.license}">CC BY 4.0</a>
+            </span>
+        </div>
+    </aside>
 
     <section class="detail-story section-pad">
         <div class="container-wide">
@@ -73,5 +109,16 @@
 
 <footer th:replace="~{fragments/site :: footer}"></footer>
 <th:block th:replace="~{fragments/site :: scripts}"></th:block>
+<th:block th:if="${vehicle.model3d != null}">
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"
+            }
+        }
+    </script>
+    <script type="module" th:src="@{/js/vehicle-viewer-bootstrap.js}"></script>
+</th:block>
 </body>
 </html>

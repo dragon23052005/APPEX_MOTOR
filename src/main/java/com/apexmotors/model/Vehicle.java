@@ -22,13 +22,14 @@ public final class Vehicle {
     private final boolean featured;
     private final String tagline;
     private final String description;
+    private final VehicleModel3d model3d;
     private final List<String> highlights;
 
     public Vehicle(Long id, String slug, String manufacturer, String model, int year,
                    String bodyStyle, String powertrain, String transmission, BigDecimal price,
                    int horsepower, double zeroToHundred, int topSpeed, String imagePath,
                    String accent, boolean featured, String tagline, String description,
-                   List<String> highlights) {
+                   VehicleModel3d model3d, List<String> highlights) {
         this.id = id;
         this.slug = slug;
         this.manufacturer = manufacturer;
@@ -46,6 +47,7 @@ public final class Vehicle {
         this.featured = featured;
         this.tagline = tagline;
         this.description = description;
+        this.model3d = model3d;
         this.highlights = List.copyOf(highlights);
     }
 
@@ -66,6 +68,8 @@ public final class Vehicle {
     public boolean isFeatured() { return featured; }
     public String getTagline() { return tagline; }
     public String getDescription() { return description; }
+    public VehicleModel3d getModel3d() { return model3d; }
+    public boolean hasModel3d() { return model3d != null; }
     public List<String> getHighlights() { return highlights; }
     public String getDisplayName() { return manufacturer + " " + model; }
 }

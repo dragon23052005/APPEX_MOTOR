@@ -24,9 +24,9 @@ public class VehicleController {
     @GetMapping("/collection")
     public String collection(@RequestParam(defaultValue = "") String q,
                              @RequestParam(defaultValue = "") String manufacturer,
-                             @RequestParam(defaultValue = "FEATURED") SortOption sort,
+                             @RequestParam(defaultValue = "FEATURED") String sort,
                              Model model) {
-        VehicleQuery query = new VehicleQuery(q, manufacturer, sort);
+        VehicleQuery query = new VehicleQuery(q, manufacturer, SortOption.fromRequestValue(sort));
         model.addAttribute("vehicles", vehicleService.search(query));
         model.addAttribute("manufacturers", vehicleService.getManufacturers());
         model.addAttribute("sortOptions", Arrays.asList(SortOption.values()));
