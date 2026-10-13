@@ -12,12 +12,12 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        registry.addResourceHandler("/models/**")
-            .addResourceLocations("classpath:/static/models/")
+        registry.addResourceHandler("/assets/cars/**")
+            .addResourceLocations("classpath:/static/assets/cars/")
             .setCacheControl(CacheControl.maxAge(Duration.ofDays(30)).cachePublic());
 
-        registry.addResourceHandler("/vendor/**")
-            .addResourceLocations("classpath:/static/vendor/")
+        registry.addResourceHandler("/images/**")
+            .addResourceLocations("classpath:/static/images/")
             .setCacheControl(CacheControl.maxAge(Duration.ofDays(30)).cachePublic());
     }
 }

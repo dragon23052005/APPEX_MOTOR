@@ -7,7 +7,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.head;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -28,7 +27,7 @@ class ApexMotorsWebTest {
         mockMvc.perform(get("/"))
             .andExpect(status().isOk())
             .andExpect(view().name("index"))
-            .andExpect(content().string(org.hamcrest.Matchers.containsString("Beyond")));
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("The art")));
 
         mockMvc.perform(get("/collection").param("manufacturer", "Rimac").param("sort", "PRICE_DESC"))
             .andExpect(status().isOk())
@@ -50,15 +49,15 @@ class ApexMotorsWebTest {
             .andExpect(status().isOk())
             .andExpect(view().name("car-details"))
             .andExpect(content().string(org.hamcrest.Matchers.containsString("Nevera")))
-            .andExpect(content().string(org.hamcrest.Matchers.containsString("/models/car-concept/CarConcept.glb")))
-            .andExpect(content().string(org.hamcrest.Matchers.containsString("/vendor/three/build/three.module.min.js")))
-            .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("three@0.186.1"))))
-            .andExpect(content().string(org.hamcrest.Matchers.containsString("vehicle-viewer-bootstrap.js?v=2.1.0")));
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("data-viewer-enabled=\"false\"")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("Cinematic studio view")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("image-sequence-viewer.js")))
+            .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString(".glb"))));
 
         mockMvc.perform(get("/cars/ferrari-sf90-stradale"))
             .andExpect(status().isOk())
-            .andExpect(content().string(org.hamcrest.Matchers.containsString("3D not available for this vehicle")))
-            .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("vehicle-viewer-bootstrap.js"))));
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("360° imagery not available for this vehicle")))
+            .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("data-sequence-toolbar"))));
 
         mockMvc.perform(get("/does-not-exist"))
             .andExpect(status().isNotFound())
@@ -88,23 +87,18 @@ class ApexMotorsWebTest {
     }
 
     @Test
-    void local3dAssetIsAvailableWithPublicCacheHeaders() throws Exception {
-        mockMvc.perform(head("/models/car-concept/CarConcept.glb"))
+    void imageSequenceViewerAndCachedStudioImageAreAvailable() throws Exception {
+        mockMvc.perform(get("/images/black-hypercar.png"))
             .andExpect(status().isOk())
             .andExpect(header().string("Cache-Control", org.hamcrest.Matchers.containsString("max-age=2592000")));
 
-        mockMvc.perform(head("/vendor/three/examples/jsm/libs/basis/basis_transcoder.wasm"))
+        mockMvc.perform(get("/js/image-sequence-viewer.js"))
             .andExpect(status().isOk())
-            .andExpect(header().string("Content-Type", org.hamcrest.Matchers.containsString("application/wasm")))
-            .andExpect(header().string("Cache-Control", org.hamcrest.Matchers.containsString("max-age=2592000")));
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("data-image-sequence")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("preloadNearby")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("requestFullscreen")));
 
-        mockMvc.perform(head("/vendor/three/build/three.core.js"))
-            .andExpect(status().isOk())
-            .andExpect(header().string("Content-Type", org.hamcrest.Matchers.containsString("javascript")))
-            .andExpect(header().string("Cache-Control", org.hamcrest.Matchers.containsString("max-age=2592000")));
-
-        mockMvc.perform(get("/js/vehicle-viewer.js"))
-            .andExpect(status().isOk())
-            .andExpect(content().string(org.hamcrest.Matchers.containsString("setKTX2Loader")));
+        mockMvc.perform(get("/models/car-concept/CarConcept.glb"))
+            .andExpect(status().isNotFound());
     }
 }

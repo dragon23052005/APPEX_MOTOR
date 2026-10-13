@@ -1,35 +1,27 @@
-# APEX MOTORS - Phase 2 Interactive 3D Showroom
+# APEX MOTORS — Phase 2 Cinematic Showroom
 
-APEX MOTORS is a server-rendered premium supercar showroom built with Java 21, Spring Boot, Spring MVC, Thymeleaf, Bootstrap, GSAP, and Three.js. Phase 2 preserves every Phase 1 route and adds an optional, progressively enhanced 3D studio to vehicle detail pages.
+APEX MOTORS is a server-rendered luxury automotive showroom built with Java 21, Spring Boot, Spring MVC, Thymeleaf, Bootstrap and GSAP. Phase 2 preserves the Phase 1 routes and backend architecture while replacing the previous real-time 3D experiment with a cinematic presentation and a reusable image-sequence 360° viewer.
 
-There is still no database, authentication, React, or Node.js application runtime. Vehicle and 3D asset metadata remain in the in-memory Java repository.
+There is no database, authentication, React, Node.js application runtime, Three.js, WebGL, Blender asset or GLB/GLTF model in this phase.
 
 ## Features
 
-### Preserved from Phase 1
+- Fullscreen cinematic homepage with restrained GSAP entrance, reveal and parallax motion
+- Editorial vehicle collection with server-side search, manufacturer filters and sorting
+- Dynamic vehicle details, specifications, highlights and private enquiry links
+- Reusable image-sequence 360° viewer with drag, touch, keyboard, autoplay, zoom, reset and fullscreen controls
+- Progressive frame loading, nearby-frame preloading, in-memory frame cache and image error fallback
+- Static studio presentation when a complete image sequence is unavailable
+- Responsive navigation, mobile layouts and `prefers-reduced-motion` support
+- Validated contact form with demonstration submission handling
+- Custom 404 page
+- Replaceable repository abstraction backed by an in-memory Java implementation
 
-- Cinematic responsive homepage and navigation
-- Eight demonstration vehicles in an in-memory repository
-- Search by vehicle name or powertrain
-- Manufacturer filtering and price/horsepower sorting
-- Dynamic vehicle details at `/cars/{slug}`
-- Featured vehicles, About, Contact, server-side validation, and custom 404
-- GSAP animations with reduced-motion support
+## Current 360° asset status
 
-### Added in Phase 2
+The repository does not currently contain a complete, licensed multi-angle sequence for any vehicle. Therefore every vehicle intentionally has `viewerEnabled=false` and displays its studio image. The 360° controls are not rendered for unavailable sequences.
 
-- Three.js `0.186.1` loaded only for vehicles that declare a 3D asset
-- GLB loading with percentage feedback, KTX2/Basis texture decoding, and a retryable error state
-- Mouse/touch orbit rotation, wheel/pinch zoom, and camera reset
-- Responsive WebGL canvas with capped mobile pixel ratio
-- Studio environment lighting, key/fill/rim lights, and soft ground shadows
-- Static-image fallback when a vehicle has no model or WebGL fails
-- Pause when the viewer is offscreen or the tab is hidden
-- Model request de-duplication and explicit geometry/material/texture disposal
-- Reduced-motion-aware controls
-- Visible attribution for the representative 3D concept model
-
-Vehicle prices, specifications, images, and the representative concept visualization are demonstration content, not sales quotations or exact digital twins.
+The viewer code and Java metadata are complete and ready for real assets; the project does not copy one image into fake frames or simulate missing angles.
 
 ## Technology
 
@@ -37,46 +29,84 @@ Vehicle prices, specifications, images, and the representative concept visualiza
 - Spring Boot 3.5.7
 - Spring MVC and Thymeleaf
 - Maven 3.9+
-- Bootstrap 5.3.8 (CDN)
-- GSAP 3.13 (CDN)
-- Three.js 0.186.1, official addons, and Basis transcoder (local static assets)
-- HTML5, CSS3, and modular vanilla JavaScript
+- Bootstrap 5.3.8 via CDN
+- GSAP 3.13 and ScrollTrigger via CDN
+- HTML5, CSS3 and modular vanilla JavaScript
 
-Bootstrap, GSAP, and Google Fonts use CDNs. Three.js, its required addons, the Basis transcoder, and the licensed GLB model are stored locally and served by Spring Boot.
+The application itself runs only on the Java/Spring Boot runtime. Bootstrap, GSAP and Google Fonts require browser internet access because they are loaded from CDNs.
 
 ## Architecture
 
 ```text
 src/main/java/com/apexmotors/
-|-- config/          MVC static-resource cache configuration
-|-- controller/      MVC request handling
+|-- config/          Static media caching configuration
+|-- controller/      Spring MVC route handlers
 |-- dto/             Contact form and collection query DTOs
-|-- model/           Vehicle and optional VehicleModel3d metadata
-|-- repository/      Replaceable repository abstraction + in-memory adapter
-`-- service/         Search, sorting, lookup, and demo submission logic
+|-- model/           Vehicle and optional image-sequence metadata
+|-- repository/      Replaceable abstraction + in-memory implementation
+`-- service/         Search, sorting, lookup and demo submission logic
 
 src/main/resources/
 |-- templates/       Thymeleaf pages and reusable fragments
 `-- static/
-    |-- css/          Responsive visual system and viewer states
-    |-- images/       Static image fallbacks
-    |-- js/           Site scripts and modular Three.js viewer
-    |-- models/       Local licensed GLB assets and license files
-    `-- vendor/       Local Three.js modules, KTX2 decoder, and MIT license
+    |-- assets/cars/  Future per-vehicle hero, gallery and 360° sequences
+    |-- css/          Cinematic responsive design system
+    |-- images/       Current generated studio photographs
+    `-- js/           Site motion and reusable image-sequence viewer
 ```
 
-`VehicleRepository` remains storage-agnostic. A future JPA implementation can replace the in-memory adapter without changing the controllers or `VehicleService`.
+`VehicleRepository` remains storage-agnostic, so a later Spring Data JPA adapter can replace the in-memory repository without changing controllers or `VehicleService`.
 
-## Optional 3D model metadata
+## Image-sequence metadata
 
-`Vehicle` has an optional `VehicleModel3d` value. Only the Rimac Nevera demonstration entry currently declares one. Every other vehicle renders the existing static image without downloading Three.js.
+`Vehicle` owns a required `VehicleImageSequence` value with:
 
-To enable a model for another vehicle:
+- `viewerEnabled`
+- `frameCount`
+- `framePathPattern`
+- `posterImage`
 
-1. Place its `.glb` file and license under `src/main/resources/static/models/<asset-name>/`.
-2. Add a `VehicleModel3d` value to that vehicle in `InMemoryVehicleRepository`.
-3. Record the model name, creator, license, source URL, and initial yaw.
-4. Confirm that redistribution and commercial/demo usage are permitted by its license.
+Disabled vehicles use `VehicleImageSequence.unavailable(posterImage)`. An enabled sequence must contain at least two frames and its pattern must contain `{frame}`. At runtime the token is replaced with a one-based, three-digit number.
+
+Example asset layout:
+
+```text
+src/main/resources/static/assets/cars/vehicle-slug/
+|-- hero.webp
+|-- gallery/
+|   `-- detail-01.webp
+`-- 360/
+    |-- frame-001.webp
+    |-- frame-002.webp
+    `-- ... frame-036.webp
+```
+
+Example metadata after all files have been added and checked:
+
+```java
+new VehicleImageSequence(
+    true,
+    36,
+    "/assets/cars/vehicle-slug/360/frame-{frame}.webp",
+    "/assets/cars/vehicle-slug/hero.webp"
+)
+```
+
+All frames must depict the same vehicle, framing and lighting. Confirm redistribution rights before committing an image sequence.
+
+## Viewer behaviour
+
+The viewer initially fetches only the current frame and a small group around it. It then preloads nearby frames and a limited forward group during browser idle time. It pauses automatic rotation when offscreen or when the tab is hidden, clears its cache on page exit, and retains the poster image if a required frame fails.
+
+Keyboard controls when a viewer is enabled:
+
+| Key | Action |
+|---|---|
+| Left / Right | Rotate one frame |
+| `+` / `-` | Zoom in / out |
+| Space | Play / pause |
+| Home | Reset angle and zoom |
+| `F` | Enter / exit fullscreen |
 
 ## Run from the command line
 
@@ -88,7 +118,7 @@ mvn -version
 mvn spring-boot:run
 ```
 
-Open <http://localhost:8080>. Visit <http://localhost:8080/cars/rimac-nevera> for the interactive viewer.
+Open <http://localhost:8080>.
 
 Build and run the packaged application:
 
@@ -105,45 +135,30 @@ mvn test
 
 ## Run in IntelliJ IDEA with Java 21
 
-1. Choose **File -> Open** and select the folder containing `pom.xml`.
-2. Allow IntelliJ IDEA to import the Maven project.
-3. In **File -> Project Structure -> Project**, select a Java 21 SDK and language level 21.
-4. In **Settings -> Build, Execution, Deployment -> Build Tools -> Maven -> Runner**, select the same Java 21 JDK.
-5. Open `src/main/java/com/apexmotors/ApexMotorsApplication.java`.
-6. Run its `main` method and browse to <http://localhost:8080>.
+1. Open IntelliJ IDEA and select **File → Open**.
+2. Choose the `APPEX_MOTOR` folder containing `pom.xml`.
+3. Wait for the Maven import and dependency download to finish.
+4. Open **File → Project Structure → Project**, select a Java 21 SDK and language level 21.
+5. Open **Settings → Build, Execution, Deployment → Build Tools → Maven → Runner** and select the same Java 21 JDK.
+6. Open `src/main/java/com/apexmotors/ApexMotorsApplication.java`.
+7. Click the green Run icon beside `main`, then visit <http://localhost:8080>.
 
-If port 8080 is occupied, change `server.port` in `src/main/resources/application.properties`.
+If IntelliJ reports missing Spring or Jakarta packages, open the Maven tool window and click **Reload All Maven Projects**. Confirm that Maven uses JDK 21 rather than compiling the source folder as a plain Java project.
 
-## Primary routes
+## Routes
 
 | Route | Purpose |
 |---|---|
 | `/` | Cinematic homepage and featured vehicles |
-| `/collection` | Searchable, filterable, sortable catalog |
-| `/cars/rimac-nevera` | Vehicle details with interactive 3D concept viewer |
-| `/cars/{other-slug}` | Vehicle details with static-image fallback |
+| `/collection` | Searchable, filterable and sortable showroom |
+| `/cars/{slug}` | Dynamic vehicle details with sequence viewer or honest static fallback |
 | `/about` | Brand philosophy |
-| `/contact` | Validated demonstration enquiry |
+| `/contact` | Server-validated demonstration enquiry |
 | Any unknown route | Custom 404 page |
 
-## 3D asset license
+## Phase boundary and limitations
 
-`CarConcept.glb` comes from the official [Khronos glTF Sample Assets repository](https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/CarConcept).
-
-- Model and textures: Eric Chadwick / Darmstadt Graphics Group GmbH
-- License: [Creative Commons Attribution 4.0 International](https://creativecommons.org/licenses/by/4.0/)
-- Local license: `src/main/resources/static/models/car-concept/LICENSE.md`
-- Local attribution: `src/main/resources/static/models/car-concept/ATTRIBUTION.md`
-
-The viewer labels this asset as a representative concept visualization. It is not presented as an exact Rimac Nevera digital twin, and no affiliation or endorsement by Khronos is implied.
-
-## Current limitations and phase boundary
-
-- Bootstrap, GSAP, and Google Fonts still require browser internet access; the complete 3D viewer dependency chain is local.
-- The local GLB is approximately 9.8 MB, so its first visit can take time on slower mobile networks.
-- Visual browser QA depends on WebGL/GPU availability; static fallback remains usable without it.
-- Phase 2 intentionally excludes paint customization, door animation, engine audio, driving simulation, database persistence, and authentication.
-
-## Image assets
-
-The three automotive images in `src/main/resources/static/images` were generated specifically for this project with the built-in OpenAI image generation tool. They contain no intended manufacturer logos or model badges and serve as original showroom fallbacks.
+- No complete 360° frame set is bundled yet, so the static fallback is the truthful active experience.
+- Current vehicle specifications, prices and inventory are demonstration data, not sales quotations.
+- Current PNG studio photographs are original assets generated for this project. Future WebP/AVIF media can be added through the documented `assets/cars` structure.
+- Database persistence, authentication, paint configuration, door animation, engine audio and driving simulation remain out of scope.

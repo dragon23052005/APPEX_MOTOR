@@ -6,36 +6,56 @@
 
 <main>
     <section class="detail-hero" th:style="'--vehicle-accent:' + ${vehicle.accent}">
-        <div class="detail-hero__media vehicle-viewer"
-             data-three-stage
-             th:classappend="${vehicle.model3d != null} ? ' vehicle-viewer--enabled' : ' vehicle-viewer--fallback'"
-             th:attr="data-model-url=${vehicle.model3d != null ? vehicle.model3d.path : null},
-                      data-initial-yaw=${vehicle.model3d != null ? vehicle.model3d.initialYawDegrees : null}"
-             th:aria-label="${vehicle.model3d != null ? 'Interactive 3D concept visualization for ' + vehicle.displayName : 'Studio image of ' + vehicle.displayName}">
-            <div class="vehicle-viewer__fallback">
-                <img th:src="${vehicle.imagePath}" th:alt="${vehicle.displayName}">
+        <div class="detail-hero__media image-sequence-viewer"
+             data-image-sequence
+             th:classappend="${vehicle.viewerEnabled} ? ' image-sequence-viewer--enabled' : ' image-sequence-viewer--fallback'"
+             th:attr="data-viewer-enabled=${vehicle.imageSequence.viewerEnabled},
+                      data-frame-count=${vehicle.imageSequence.frameCount},
+                      data-frame-pattern=${vehicle.imageSequence.framePathPattern},
+                      data-poster-image=${vehicle.imageSequence.posterImage},
+                      data-auto-rotate=${vehicle.viewerEnabled},
+                      data-vehicle-name=${vehicle.displayName}"
+             th:aria-label="${vehicle.viewerEnabled ? 'Interactive 360 degree image viewer for ' + vehicle.displayName : 'Studio photograph of ' + vehicle.displayName}"
+             th:tabindex="${vehicle.viewerEnabled ? '0' : null}">
+            <div class="image-sequence-viewer__stage" data-sequence-stage>
+                <img data-sequence-frame th:src="${vehicle.imageSequence.posterImage}" th:alt="${vehicle.displayName}"
+                     width="1774" height="887" fetchpriority="high" draggable="false">
             </div>
-            <div class="vehicle-viewer__canvas" data-viewer-canvas aria-hidden="true"></div>
             <div class="detail-hero__shade"></div>
-            <div th:if="${vehicle.model3d != null}" class="vehicle-viewer__loading" data-viewer-loading role="status" aria-live="polite">
-                <span class="viewer-loader" aria-hidden="true"></span>
-                <span data-viewer-loading-text>Preparing 3D studio · 0%</span>
+
+            <div th:if="${vehicle.viewerEnabled}" class="sequence-loader" data-sequence-loader role="status" aria-live="polite">
+                <span>Preparing 360° view</span>
+                <div><i data-sequence-progress-bar></i></div>
+                <strong data-sequence-progress>0%</strong>
             </div>
-            <div th:if="${vehicle.model3d != null}" class="vehicle-viewer__error" data-viewer-error role="alert" hidden>
-                <strong>3D studio unavailable</strong>
-                <span data-viewer-error-message>The studio image remains available.</span>
-                <button type="button" data-viewer-retry>Try again</button>
+
+            <div th:if="${vehicle.viewerEnabled}" class="sequence-error" data-sequence-error role="alert" hidden>
+                <strong>360° view unavailable</strong>
+                <span>The studio photograph remains available.</span>
+                <button type="button" data-sequence-retry>Retry viewer</button>
             </div>
-            <div th:if="${vehicle.model3d != null}" class="vehicle-viewer__toolbar" data-viewer-toolbar hidden>
-                <span><i></i> Interactive 3D</span>
-                <button type="button" data-viewer-reset aria-label="Reset 3D camera">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.9 7.1A8 8 0 1 1 4 14M4.9 7.1V3m0 4.1H9"/></svg>
-                    Reset view
-                </button>
+
+            <div th:if="${vehicle.viewerEnabled}" class="sequence-toolbar" data-sequence-toolbar hidden>
+                <div class="sequence-toolbar__mode"><i></i><span>360° image view</span></div>
+                <div class="sequence-toolbar__controls" aria-label="360 degree viewer controls">
+                    <button type="button" data-sequence-toggle aria-label="Pause automatic rotation" title="Play or pause">
+                        <span data-icon-pause aria-hidden="true">Ⅱ</span><span data-icon-play aria-hidden="true" hidden>▶</span>
+                    </button>
+                    <button type="button" data-sequence-zoom-out aria-label="Zoom out" title="Zoom out">−</button>
+                    <button type="button" data-sequence-zoom-in aria-label="Zoom in" title="Zoom in">+</button>
+                    <button type="button" data-sequence-reset aria-label="Reset 360 degree view" title="Reset view">↺</button>
+                    <button type="button" data-sequence-fullscreen aria-label="Enter fullscreen" title="Fullscreen">⛶</button>
+                </div>
             </div>
-            <p th:if="${vehicle.model3d != null}" class="vehicle-viewer__hint" data-viewer-hint hidden>Drag to rotate · Scroll or pinch to zoom</p>
-            <span th:unless="${vehicle.model3d != null}" class="viewer-ready"><i></i> Studio image · 3D not available for this vehicle</span>
+
+            <p th:if="${vehicle.viewerEnabled}" class="sequence-hint" data-sequence-hint>Drag or use arrow keys to rotate</p>
+            <div th:unless="${vehicle.viewerEnabled}" class="static-media-label">
+                <span><i></i> Cinematic studio view</span>
+                <small>360° imagery not available for this vehicle</small>
+            </div>
+            <p class="visually-hidden" data-sequence-status aria-live="polite"></p>
         </div>
+
         <div class="detail-hero__content container-wide">
             <a class="back-link" th:href="@{/collection}">← Back to collection</a>
             <div class="detail-title">
@@ -59,17 +79,6 @@
         </div>
     </section>
 
-    <aside th:if="${vehicle.model3d != null}" class="model-credit" aria-label="3D model attribution">
-        <div class="container-wide">
-            <span>Representative concept visualization — not the exact production vehicle.</span>
-            <span>
-                <strong th:text="${vehicle.model3d.displayName}">Car Concept</strong>
-                by <span th:text="${vehicle.model3d.attribution}">Creator</span>
-                · <a th:href="${vehicle.model3d.sourceUrl}" target="_blank" rel="noopener noreferrer" th:text="${vehicle.model3d.license}">CC BY 4.0</a>
-            </span>
-        </div>
-    </aside>
-
     <section class="detail-story section-pad">
         <div class="container-wide">
             <div class="row g-5">
@@ -90,9 +99,23 @@
         </div>
     </section>
 
+    <section class="detail-gallery section-pad" aria-labelledby="gallery-title">
+        <div class="container-wide">
+            <div class="detail-gallery__heading reveal">
+                <div><p class="section-number">02 / Studio</p><h2 id="gallery-title">Every line,<br><span>considered.</span></h2></div>
+                <p th:if="${!vehicle.viewerEnabled}">This vehicle currently uses a curated studio photograph. A 360° viewer is shown only when a complete multi-angle image sequence is available.</p>
+                <p th:if="${vehicle.viewerEnabled}">Explore the vehicle through a complete sequence of real, consistent studio angles.</p>
+            </div>
+            <figure class="detail-gallery__frame image-reveal">
+                <img th:src="${vehicle.imagePath}" th:alt="${vehicle.displayName + ' studio view'}" width="1774" height="887" loading="lazy" decoding="async">
+                <figcaption><span th:text="${vehicle.manufacturer + ' / ' + vehicle.model}">Vehicle</span><span>APEX studio selection</span></figcaption>
+            </figure>
+        </div>
+    </section>
+
     <section class="highlights-section section-pad">
         <div class="container-wide">
-            <p class="section-number reveal">02 / Defining details</p>
+            <p class="section-number reveal">03 / Defining details</p>
             <div class="highlight-grid">
                 <div th:each="highlight, status : ${vehicle.highlights}" class="highlight-item reveal">
                     <span th:text="'0' + ${status.count}">01</span>
@@ -109,16 +132,6 @@
 
 <footer th:replace="~{fragments/site :: footer}"></footer>
 <th:block th:replace="~{fragments/site :: scripts}"></th:block>
-<th:block th:if="${vehicle.model3d != null}">
-    <script type="importmap">
-        {
-            "imports": {
-                "three": "/vendor/three/build/three.module.min.js",
-                "three/addons/": "/vendor/three/examples/jsm/"
-            }
-        }
-    </script>
-    <script type="module" th:src="@{/js/vehicle-viewer-bootstrap.js(v='2.1.0')}"></script>
-</th:block>
+<script th:src="@{/js/image-sequence-viewer.js}" defer></script>
 </body>
 </html>

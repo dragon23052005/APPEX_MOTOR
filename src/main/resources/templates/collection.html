@@ -1,16 +1,20 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments/site :: head('The Collection — APEX MOTORS', 'Search and explore the APEX MOTORS performance car collection.')}"></head>
-<body>
+<body class="collection-page">
 <nav th:replace="~{fragments/site :: nav(${activePage})}"></nav>
 
 <main>
     <header class="page-hero page-hero--collection">
+        <div class="page-hero__ambient" aria-hidden="true"></div>
         <div class="container-wide">
-            <p class="eyebrow hero-kicker">The collection</p>
+            <p class="eyebrow hero-kicker">The private collection</p>
             <div class="page-hero__row">
                 <h1>Machines of<br><span>consequence.</span></h1>
-                <p>Curated for engineering significance, visceral character and enduring desirability.</p>
+                <div class="page-hero__aside">
+                    <span class="collection-count"><strong th:text="${vehicles.size()}">8</strong> / Available selection</span>
+                    <p>Curated for engineering significance, visceral character and enduring desirability.</p>
+                </div>
             </div>
         </div>
     </header>
@@ -39,7 +43,7 @@
             </form>
 
             <div class="results-head">
-                <p><strong th:text="${vehicles.size()}">8</strong> vehicles</p>
+                <p><strong th:text="${vehicles.size()}">8</strong> vehicles / Curated inventory</p>
                 <a th:if="${!query.search.isBlank() or !query.manufacturer.isBlank() or query.sort.name() != 'FEATURED'}" th:href="@{/collection}">Clear filters ×</a>
             </div>
 
@@ -50,7 +54,7 @@
                 <a class="btn-apex" th:href="@{/collection}">Reset collection <span>→</span></a>
             </div>
 
-            <div th:unless="${vehicles.isEmpty()}" class="vehicle-grid vehicle-grid--catalog">
+            <div th:unless="${vehicles.isEmpty()}" class="vehicle-grid vehicle-grid--catalog" data-card-grid>
                 <th:block th:each="vehicle : ${vehicles}">
                     <article th:replace="~{fragments/site :: vehicleCard(${vehicle})}"></article>
                 </th:block>

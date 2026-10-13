@@ -3,6 +3,7 @@ package com.apexmotors.service;
 import com.apexmotors.dto.VehicleQuery;
 import com.apexmotors.dto.VehicleQuery.SortOption;
 import com.apexmotors.model.Vehicle;
+import com.apexmotors.model.VehicleImageSequence;
 import com.apexmotors.repository.InMemoryVehicleRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -46,12 +47,31 @@ class VehicleServiceTest {
     }
 
     @Test
-    void exposesOptional3dModelMetadataWithoutChangingOtherVehicles() {
+    void keepsThe360ViewerDisabledUntilRealSequencesExist() {
         Vehicle nevera = vehicleService.getBySlug("rimac-nevera");
         Vehicle ferrari = vehicleService.getBySlug("ferrari-sf90-stradale");
 
-        assertThat(nevera.hasModel3d()).isTrue();
-        assertThat(nevera.getModel3d().path()).endsWith("CarConcept.glb");
-        assertThat(ferrari.hasModel3d()).isFalse();
+        assertThat(nevera.isViewerEnabled()).isFalse();
+        assertThat(nevera.getImageSequence().posterImage()).isEqualTo(nevera.getImagePath());
+        assertThat(ferrari.isViewerEnabled()).isFalse();
+    }
+
+    @Test
+    void validatesImageSequenceMetadataBeforeEnablingViewer() {
+        assertThatThrownBy(() -> new VehicleImageSequence(true, 1,
+            "/assets/cars/demo/360/frame-{frame}.webp", "/images/black-hypercar.png"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("at least two frames");
+
+        assertThatThrownBy(() -> new VehicleImageSequence(true, 36,
+            "/assets/cars/demo/360/image.webp", "/images/black-hypercar.png"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("{frame}");
+
+        VehicleImageSequence sequence = new VehicleImageSequence(true, 36,
+            "/assets/cars/demo/360/frame-{frame}.webp", "/assets/cars/demo/hero.webp");
+
+        assertThat(sequence.viewerEnabled()).isTrue();
+        assertThat(sequence.frameCount()).isEqualTo(36);
     }
 }

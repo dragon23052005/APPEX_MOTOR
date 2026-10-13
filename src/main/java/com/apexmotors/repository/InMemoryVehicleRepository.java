@@ -1,7 +1,7 @@
 package com.apexmotors.repository;
 
 import com.apexmotors.model.Vehicle;
-import com.apexmotors.model.VehicleModel3d;
+import com.apexmotors.model.VehicleImageSequence;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
@@ -41,18 +41,10 @@ public class InMemoryVehicleRepository implements VehicleRepository {
             BLACK, "#6a7472", false, "British elegance at hypercar velocity.",
             "A mid-engine hybrid flagship combining sculptural design, active aero, and devastating pace.",
             "Carbon-fibre tub", "Torque-vectoring e-axle", "Active aero surfaces"),
-        vehicleWithModel(6L, "rimac-nevera", "Rimac", "Nevera", 2025, "Coupe",
+        vehicle(6L, "rimac-nevera", "Rimac", "Nevera", 2025, "Coupe",
             "Quad-motor electric", "Single-speed per motor", "2400000", 1914, 1.9, 412,
             BLACK, "#6f7780", true, "The electric horizon, accelerated.",
             "Four independent motors deliver extraordinary control and a new definition of instant performance.",
-            new VehicleModel3d(
-                "/models/car-concept/CarConcept.glb",
-                "Car Concept",
-                "© 2024 Darmstadt Graphics Group GmbH — Eric Chadwick",
-                "CC BY 4.0",
-                "https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/CarConcept",
-                -24.0
-            ),
             "120 kWh battery", "All-wheel torque vectoring", "Carbon monocoque"),
         vehicle(7L, "koenigsegg-jesko-attack", "Koenigsegg", "Jesko Attack", 2025, "Coupe",
             "5.0L twin-turbo V8", "9-speed Light Speed", "3000000", 1578, 2.5, 480,
@@ -73,17 +65,7 @@ public class InMemoryVehicleRepository implements VehicleRepository {
                             String... highlights) {
         return new Vehicle(id, slug, manufacturer, model, year, bodyStyle, powertrain, transmission,
             new BigDecimal(price), horsepower, zeroToHundred, topSpeed, imagePath, accent, featured,
-            tagline, description, null, List.of(highlights));
-    }
-
-    private Vehicle vehicleWithModel(Long id, String slug, String manufacturer, String model, int year,
-                                     String bodyStyle, String powertrain, String transmission, String price,
-                                     int horsepower, double zeroToHundred, int topSpeed, String imagePath,
-                                     String accent, boolean featured, String tagline, String description,
-                                     VehicleModel3d model3d, String... highlights) {
-        return new Vehicle(id, slug, manufacturer, model, year, bodyStyle, powertrain, transmission,
-            new BigDecimal(price), horsepower, zeroToHundred, topSpeed, imagePath, accent, featured,
-            tagline, description, model3d, List.of(highlights));
+            tagline, description, VehicleImageSequence.unavailable(imagePath), List.of(highlights));
     }
 
     @Override
