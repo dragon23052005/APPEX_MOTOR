@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/site :: head('Page Not Found — APEX MOTORS', 'The requested page could not be found.')}"></head>
+<body class="error-page">
+<nav th:replace="~{fragments/site :: nav('')}"></nav>
+<main class="error-shell">
+    <div class="error-shell__media"><img src="/images/black-hypercar.png" alt=""></div>
+    <div class="error-shell__content">
+        <span class="error-code">404</span>
+        <p class="eyebrow">Road not found</p>
+        <h1>This route ends here.</h1>
+        <p>The page may have moved, but the collection is exactly where you left it.</p>
+        <div><a class="btn-apex" th:href="@{/collection}">Return to collection <span>→</span></a><a class="text-link" th:href="@{/}">Go home</a></div>
+    </div>
+</main>
+<th:block th:replace="~{fragments/site :: scripts}"></th:block>
+</body>
+</html>

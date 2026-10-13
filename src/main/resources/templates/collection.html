@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/site :: head('The Collection — APEX MOTORS', 'Search and explore the APEX MOTORS performance car collection.')}"></head>
+<body>
+<nav th:replace="~{fragments/site :: nav(${activePage})}"></nav>
+
+<main>
+    <header class="page-hero page-hero--collection">
+        <div class="container-wide">
+            <p class="eyebrow hero-kicker">The collection</p>
+            <div class="page-hero__row">
+                <h1>Machines of<br><span>consequence.</span></h1>
+                <p>Curated for engineering significance, visceral character and enduring desirability.</p>
+            </div>
+        </div>
+    </header>
+
+    <section class="collection-section">
+        <div class="container-wide">
+            <form class="filter-bar reveal" method="get" th:action="@{/collection}" data-filter-form>
+                <div class="search-field">
+                    <label for="vehicleSearch">Search the collection</label>
+                    <div><span aria-hidden="true">⌕</span><input id="vehicleSearch" type="search" name="q" th:value="${query.search}" placeholder="Make, model or powertrain"></div>
+                </div>
+                <div class="select-field">
+                    <label for="manufacturer">Manufacturer</label>
+                    <select id="manufacturer" name="manufacturer" data-auto-submit>
+                        <option value="">All marques</option>
+                        <option th:each="make : ${manufacturers}" th:value="${make}" th:text="${make}" th:selected="${make == query.manufacturer}"></option>
+                    </select>
+                </div>
+                <div class="select-field">
+                    <label for="sort">Sort by</label>
+                    <select id="sort" name="sort" data-auto-submit>
+                        <option th:each="option : ${sortOptions}" th:value="${option}" th:text="${option.label}" th:selected="${option == query.sort}"></option>
+                    </select>
+                </div>
+                <button class="filter-submit" type="submit">Apply <span>→</span></button>
+            </form>
+
+            <div class="results-head">
+                <p><strong th:text="${vehicles.size()}">8</strong> vehicles</p>
+                <a th:if="${!query.search.isBlank() or !query.manufacturer.isBlank() or query.sort.name() != 'FEATURED'}" th:href="@{/collection}">Clear filters ×</a>
+            </div>
+
+            <div th:if="${vehicles.isEmpty()}" class="empty-state reveal">
+                <span>0 results</span>
+                <h2>No machine matched your search.</h2>
+                <p>Try a different model, manufacturer or powertrain.</p>
+                <a class="btn-apex" th:href="@{/collection}">Reset collection <span>→</span></a>
+            </div>
+
+            <div th:unless="${vehicles.isEmpty()}" class="vehicle-grid vehicle-grid--catalog">
+                <th:block th:each="vehicle : ${vehicles}">
+                    <article th:replace="~{fragments/site :: vehicleCard(${vehicle})}"></article>
+                </th:block>
+            </div>
+        </div>
+    </section>
+</main>
+
+<footer th:replace="~{fragments/site :: footer}"></footer>
+<th:block th:replace="~{fragments/site :: scripts}"></th:block>
+</body>
+</html>

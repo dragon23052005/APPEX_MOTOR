@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/site :: head('Private Enquiry — APEX MOTORS', 'Arrange a private vehicle consultation with APEX MOTORS.')}"></head>
+<body>
+<nav th:replace="~{fragments/site :: nav(${activePage})}"></nav>
+
+<main>
+    <header class="page-hero page-hero--contact">
+        <div class="container-wide">
+            <p class="eyebrow hero-kicker">Private enquiry</p>
+            <div class="page-hero__row">
+                <h1>Let’s begin a<br><span>conversation.</span></h1>
+                <p>Tell us what has your attention. A specialist will respond personally to arrange the next step.</p>
+            </div>
+        </div>
+    </header>
+
+    <section class="contact-section">
+        <div class="container-wide">
+            <div th:if="${successMessage}" class="success-panel reveal" role="status">
+                <span>✓</span>
+                <div><p class="eyebrow">Enquiry received</p><h2 th:text="${successMessage}">Thank you.</h2><p>Reference: <strong th:text="${reference}">APX-00000000</strong></p></div>
+            </div>
+            <div class="row g-5" th:unless="${successMessage}">
+                <aside class="col-lg-4 contact-aside reveal">
+                    <p class="section-number">01 / Your details</p>
+                    <h2>A direct line<br>to APEX.</h2>
+                    <p>Enquiries are reviewed by our showroom team. Expect a considered response within one business day.</p>
+                    <div class="contact-detail"><small>Showroom</small><strong>Ho Chi Minh City, Vietnam</strong><span>By appointment only</span></div>
+                    <div class="contact-detail"><small>Availability</small><strong>Monday — Saturday</strong><span>09:00 — 18:00</span></div>
+                </aside>
+                <div class="col-lg-7 offset-lg-1 reveal">
+                    <form class="enquiry-form" th:action="@{/contact}" th:object="${contactForm}" method="post" novalidate>
+                        <div class="form-grid">
+                            <div class="form-field">
+                                <label for="name">Full name <span>*</span></label>
+                                <input id="name" type="text" th:field="*{name}" th:classappend="${#fields.hasErrors('name')} ? 'is-invalid'" autocomplete="name" placeholder="Your name">
+                                <p class="field-error" th:if="${#fields.hasErrors('name')}" th:errors="*{name}">Name error</p>
+                            </div>
+                            <div class="form-field">
+                                <label for="email">Email address <span>*</span></label>
+                                <input id="email" type="email" th:field="*{email}" th:classappend="${#fields.hasErrors('email')} ? 'is-invalid'" autocomplete="email" placeholder="you@example.com">
+                                <p class="field-error" th:if="${#fields.hasErrors('email')}" th:errors="*{email}">Email error</p>
+                            </div>
+                            <div class="form-field">
+                                <label for="phone">Phone number</label>
+                                <input id="phone" type="tel" th:field="*{phone}" th:classappend="${#fields.hasErrors('phone')} ? 'is-invalid'" autocomplete="tel" placeholder="+84 000 000 000">
+                                <p class="field-error" th:if="${#fields.hasErrors('phone')}" th:errors="*{phone}">Phone error</p>
+                            </div>
+                            <div class="form-field">
+                                <label for="interest">Area of interest <span>*</span></label>
+                                <select id="interest" th:field="*{interest}" th:classappend="${#fields.hasErrors('interest')} ? 'is-invalid'">
+                                    <option value="">Select one</option>
+                                    <option value="Vehicle acquisition">Vehicle acquisition</option>
+                                    <option value="Private viewing">Private viewing</option>
+                                    <option value="Sourcing request">Sourcing request</option>
+                                    <option value="General enquiry">General enquiry</option>
+                                </select>
+                                <p class="field-error" th:if="${#fields.hasErrors('interest')}" th:errors="*{interest}">Interest error</p>
+                            </div>
+                            <div class="form-field form-field--full">
+                                <label for="message">How can we help? <span>*</span></label>
+                                <textarea id="message" rows="5" th:field="*{message}" th:classappend="${#fields.hasErrors('message')} ? 'is-invalid'" placeholder="Tell us about the vehicle or experience you are looking for."></textarea>
+                                <p class="field-error" th:if="${#fields.hasErrors('message')}" th:errors="*{message}">Message error</p>
+                            </div>
+                            <div class="form-field form-field--full consent-field">
+                                <label><input type="checkbox" th:field="*{privacyAccepted}"><span>I agree that APEX MOTORS may use these details to respond to my enquiry. <b>*</b></span></label>
+                                <p class="field-error" th:if="${#fields.hasErrors('privacyAccepted')}" th:errors="*{privacyAccepted}">Privacy error</p>
+                            </div>
+                        </div>
+                        <button class="btn-apex" type="submit">Send private enquiry <span>↗</span></button>
+                        <p class="form-note">Demo submission only — no data is persisted in Phase 1.</p>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+
+<footer th:replace="~{fragments/site :: footer}"></footer>
+<th:block th:replace="~{fragments/site :: scripts}"></th:block>
+</body>
+</html>

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/site :: head('APEX MOTORS — Exceptional machines, personally curated', 'A premium collection of the world’s most compelling performance cars.')}"></head>
+<body class="home-page">
+<nav th:replace="~{fragments/site :: nav(${activePage})}"></nav>
+
+<main>
+    <section class="hero" aria-labelledby="hero-title">
+        <div class="hero__media" aria-hidden="true">
+            <img src="/images/hero-red-supercar.png" alt="">
+            <div class="hero__veil"></div>
+        </div>
+        <div class="hero__content container-wide">
+            <div class="hero__copy">
+                <p class="eyebrow hero-kicker">The pursuit of extraordinary</p>
+                <h1 id="hero-title"><span>Beyond</span><br>the machine.</h1>
+                <p class="hero__lead">A private showroom for the rare, the visceral, and the beautifully engineered.</p>
+                <div class="hero__actions">
+                    <a class="btn-apex" th:href="@{/collection}">Explore the collection <span>↗</span></a>
+                    <a class="text-link" th:href="@{/about}">Discover our philosophy <span>→</span></a>
+                </div>
+            </div>
+            <div class="hero__index" aria-hidden="true">
+                <span>01</span><i></i><span>Curated performance</span>
+            </div>
+        </div>
+        <a class="scroll-cue" href="#featured"><span>Scroll to discover</span><i></i></a>
+    </section>
+
+    <section class="manifesto section-pad">
+        <div class="container-wide">
+            <div class="row g-5 align-items-end">
+                <div class="col-lg-4 reveal">
+                    <p class="section-number">01 / Philosophy</p>
+                    <p class="eyebrow">Driven by discernment</p>
+                </div>
+                <div class="col-lg-8 reveal">
+                    <h2 class="display-statement">We don’t simply find cars.<br><span>We find the one.</span></h2>
+                    <div class="row manifesto__body">
+                        <div class="col-md-7 offset-md-3">
+                            <p>Every motor car in our collection is selected for the way it makes you feel before the engine even starts. Provenance, engineering and presence — considered as one.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="featured" class="featured-section section-pad">
+        <div class="container-wide">
+            <div class="section-heading reveal">
+                <div>
+                    <p class="section-number">02 / The collection</p>
+                    <h2>Selected<br><span>highlights.</span></h2>
+                </div>
+                <div class="section-heading__aside">
+                    <p>A concise edit of modern performance — each one chosen for a distinct point of view.</p>
+                    <a class="text-link" th:href="@{/collection}">View all vehicles <span>→</span></a>
+                </div>
+            </div>
+            <div class="vehicle-grid">
+                <th:block th:each="vehicle : ${featuredVehicles}">
+                    <article th:replace="~{fragments/site :: vehicleCard(${vehicle})}"></article>
+                </th:block>
+            </div>
+        </div>
+    </section>
+
+    <section class="experience-band">
+        <div class="experience-band__image parallax-media">
+            <img src="/images/black-hypercar.png" alt="Black hypercar in the APEX gallery" loading="lazy">
+        </div>
+        <div class="experience-band__content container-wide">
+            <div class="experience-card reveal">
+                <p class="section-number">03 / The experience</p>
+                <p class="eyebrow">Personal by design</p>
+                <h2>Private access.<br>Unhurried decisions.</h2>
+                <p>From first conversation to final handover, one specialist stays with you. Every viewing is private, every detail considered.</p>
+                <a class="btn-apex btn-apex--light" th:href="@{/contact}">Arrange a viewing <span>↗</span></a>
+            </div>
+        </div>
+    </section>
+
+    <section class="numbers section-pad">
+        <div class="container-wide">
+            <div class="numbers__intro reveal">
+                <p class="section-number">04 / By the numbers</p>
+                <h2>Small by choice.<br><span>Exacting by nature.</span></h2>
+            </div>
+            <div class="numbers__grid">
+                <div class="metric reveal"><strong data-count="8">8</strong><span>Exceptional cars</span></div>
+                <div class="metric reveal"><strong data-count="7">7</strong><span>Marques represented</span></div>
+                <div class="metric reveal"><strong data-count="1">1</strong><span>Dedicated specialist</span></div>
+                <div class="metric reveal"><strong>∞</strong><span>Attention to detail</span></div>
+            </div>
+        </div>
+    </section>
+</main>
+
+<footer th:replace="~{fragments/site :: footer}"></footer>
+<th:block th:replace="~{fragments/site :: scripts}"></th:block>
+</body>
+</html>

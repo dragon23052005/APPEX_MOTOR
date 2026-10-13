@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/site :: head(${vehicle.displayName + ' — APEX MOTORS'}, ${vehicle.tagline})}"></head>
+<body class="detail-page">
+<nav th:replace="~{fragments/site :: nav(${activePage})}"></nav>
+
+<main>
+    <section class="detail-hero" th:style="'--vehicle-accent:' + ${vehicle.accent}">
+        <div class="detail-hero__media" data-three-stage aria-label="Future interactive vehicle viewer">
+            <img th:src="${vehicle.imagePath}" th:alt="${vehicle.displayName}">
+            <div class="detail-hero__shade"></div>
+            <span class="viewer-ready"><i></i> Visual stage · 3D-ready structure</span>
+        </div>
+        <div class="detail-hero__content container-wide">
+            <a class="back-link" th:href="@{/collection}">← Back to collection</a>
+            <div class="detail-title">
+                <p class="eyebrow" th:text="${vehicle.manufacturer}">Ferrari</p>
+                <h1 th:text="${vehicle.model}">SF90 Stradale</h1>
+                <p th:text="${vehicle.tagline}">Tagline</p>
+            </div>
+            <div class="detail-price">
+                <small>Indicative price</small>
+                <strong th:text="'€' + ${#numbers.formatDecimal(vehicle.price, 0, 'COMMA', 0, 'POINT')}">€625,000</strong>
+            </div>
+        </div>
+    </section>
+
+    <section class="spec-strip">
+        <div class="container-wide spec-grid">
+            <div><small>Power</small><strong th:text="${vehicle.horsepower} + ' hp'">986 hp</strong></div>
+            <div><small>0–100 km/h</small><strong th:text="${vehicle.zeroToHundred} + ' sec'">2.5 sec</strong></div>
+            <div><small>Top speed</small><strong th:text="${vehicle.topSpeed} + ' km/h'">340 km/h</strong></div>
+            <div><small>Model year</small><strong th:text="${vehicle.year}">2025</strong></div>
+        </div>
+    </section>
+
+    <section class="detail-story section-pad">
+        <div class="container-wide">
+            <div class="row g-5">
+                <div class="col-lg-4 reveal">
+                    <p class="section-number">01 / Overview</p>
+                    <p class="eyebrow">The character</p>
+                </div>
+                <div class="col-lg-8 reveal">
+                    <h2 th:text="${vehicle.tagline}">Electrified intensity.</h2>
+                    <p class="detail-story__lead" th:text="${vehicle.description}">Description</p>
+                    <div class="detail-specs">
+                        <div><span>Body</span><strong th:text="${vehicle.bodyStyle}">Coupe</strong></div>
+                        <div><span>Powertrain</span><strong th:text="${vehicle.powertrain}">V8 hybrid</strong></div>
+                        <div><span>Transmission</span><strong th:text="${vehicle.transmission}">8 speed</strong></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="highlights-section section-pad">
+        <div class="container-wide">
+            <p class="section-number reveal">02 / Defining details</p>
+            <div class="highlight-grid">
+                <div th:each="highlight, status : ${vehicle.highlights}" class="highlight-item reveal">
+                    <span th:text="'0' + ${status.count}">01</span>
+                    <h3 th:text="${highlight}">Highlight</h3>
+                </div>
+            </div>
+            <div class="detail-enquiry reveal">
+                <div><p class="eyebrow">Private consultation</p><h2>Experience this <span th:text="${vehicle.model}">vehicle</span>.</h2></div>
+                <a class="btn-apex btn-apex--light" th:href="@{/contact(interest=${vehicle.displayName})}">Request a viewing <span>↗</span></a>
+            </div>
+        </div>
+    </section>
+</main>
+
+<footer th:replace="~{fragments/site :: footer}"></footer>
+<th:block th:replace="~{fragments/site :: scripts}"></th:block>
+</body>
+</html>

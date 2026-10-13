@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/site :: head('Our Story — APEX MOTORS', 'The philosophy behind the APEX MOTORS private showroom experience.')}"></head>
+<body>
+<nav th:replace="~{fragments/site :: nav(${activePage})}"></nav>
+
+<main>
+    <header class="page-hero page-hero--about">
+        <div class="container-wide">
+            <p class="eyebrow hero-kicker">Our story</p>
+            <div class="page-hero__row">
+                <h1>Performance,<br><span>made personal.</span></h1>
+                <p>APEX MOTORS was imagined as the antidote to the conventional showroom: smaller, quieter, and entirely focused on the individual.</p>
+            </div>
+        </div>
+    </header>
+
+    <section class="about-image parallax-media">
+        <img src="/images/silver-grand-tourer.png" alt="Silver grand tourer in the APEX studio">
+    </section>
+
+    <section class="about-story section-pad">
+        <div class="container-wide">
+            <div class="row g-5">
+                <div class="col-lg-4 reveal"><p class="section-number">01 / Why APEX</p><p class="eyebrow">A more considered way</p></div>
+                <div class="col-lg-8 reveal">
+                    <h2 class="display-statement">Built around the belief that<br><span>access should feel effortless.</span></h2>
+                    <div class="about-copy">
+                        <p>Our collection is intentionally concise. It gives every machine room to be understood, and every client time to arrive at the right decision.</p>
+                        <p>We value informed conversation over sales theatre. That means thoughtful sourcing, transparent context, and a single point of contact from introduction to handover.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="principles section-pad">
+        <div class="container-wide">
+            <p class="section-number reveal">02 / Our principles</p>
+            <div class="principles-grid">
+                <article class="reveal"><span>01</span><h3>Curate ruthlessly.</h3><p>Fewer cars. Stronger reasons. Every place in the collection must be earned.</p></article>
+                <article class="reveal"><span>02</span><h3>Know the machine.</h3><p>Specification is only the start. We consider history, context, and character.</p></article>
+                <article class="reveal"><span>03</span><h3>Respect your time.</h3><p>Private appointments, concise communication, and details handled before they become questions.</p></article>
+            </div>
+        </div>
+    </section>
+</main>
+
+<footer th:replace="~{fragments/site :: footer}"></footer>
+<th:block th:replace="~{fragments/site :: scripts}"></th:block>
+</body>
+</html>
