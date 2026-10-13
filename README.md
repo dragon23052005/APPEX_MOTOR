@@ -73,7 +73,7 @@ Example asset layout:
 
 ```text
 src/main/resources/static/assets/cars/vehicle-slug/
-|-- hero.png
+|-- hero.webp
 |-- gallery/
 |   `-- detail-01.webp
 `-- 360/
@@ -89,7 +89,7 @@ new VehicleImageSequence(
     true,
     36,
     "/assets/cars/vehicle-slug/360/frame-{frame}.webp",
-    "/assets/cars/vehicle-slug/hero.png"
+    "/assets/cars/vehicle-slug/hero.webp"
 )
 ```
 
@@ -146,6 +146,8 @@ mvn test
 
 If IntelliJ reports missing Spring or Jakarta packages, open the Maven tool window and click **Reload All Maven Projects**. Confirm that Maven uses JDK 21 rather than compiling the source folder as a plain Java project.
 
+The default configuration enables Thymeleaf template caching for production-like performance. While actively editing templates in IntelliJ, add `--spring.profiles.active=dev` to the run configuration's program arguments to disable that cache.
+
 ## Routes
 
 | Route | Purpose |
@@ -161,5 +163,5 @@ If IntelliJ reports missing Spring or Jakarta packages, open the Maven tool wind
 
 - No complete 360° frame set is bundled yet, so the static fallback is the truthful active experience.
 - Current vehicle specifications, prices and inventory are demonstration data, not sales quotations.
-- Current PNG studio photographs are original assets generated for this project. Future WebP/AVIF media can be added through the documented `assets/cars` structure.
+- Current per-vehicle and shared studio photographs are WebP assets generated for this project, with 960-pixel responsive variants for mobile and card layouts. Future AVIF media can be added through the documented `assets/cars` structure.
 - Database persistence, authentication, paint configuration, door animation, engine audio and driving simulation remain out of scope.

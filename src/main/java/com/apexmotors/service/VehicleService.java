@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 
 @Service
 public class VehicleService {
@@ -35,13 +36,13 @@ public class VehicleService {
     }
 
     public List<Vehicle> search(VehicleQuery query) {
-        String term = query.search().toLowerCase();
+        String term = query.search().toLowerCase(Locale.ROOT);
         String manufacturer = query.manufacturer();
 
         return vehicleRepository.findAll().stream()
             .filter(vehicle -> term.isBlank()
-                || vehicle.getDisplayName().toLowerCase().contains(term)
-                || vehicle.getPowertrain().toLowerCase().contains(term))
+                || vehicle.getDisplayName().toLowerCase(Locale.ROOT).contains(term)
+                || vehicle.getPowertrain().toLowerCase(Locale.ROOT).contains(term))
             .filter(vehicle -> manufacturer.isBlank()
                 || vehicle.getManufacturer().equalsIgnoreCase(manufacturer))
             .sorted(comparatorFor(query.sort()))

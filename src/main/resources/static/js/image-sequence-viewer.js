@@ -20,6 +20,7 @@
             this.pauseIcon = root.querySelector('[data-icon-pause]');
             this.frameCount = Number.parseInt(root.dataset.frameCount || '0', 10);
             this.pattern = root.dataset.framePattern || '';
+            this.posterImage = root.dataset.posterImage || this.frameImage?.src || '';
             this.vehicleName = root.dataset.vehicleName || 'Vehicle';
             this.autoRotateRequested = root.dataset.autoRotate === 'true' && !reduceMotion;
             this.cache = new Map();
@@ -36,6 +37,7 @@
             this.autoTimer = null;
             this.idleHandle = null;
             this.renderToken = 0;
+            this.loadGeneration = 0;
             this.abortController = new AbortController();
             this.observer = null;
         }
@@ -53,14 +55,24 @@
         }
 
         async prepareFrames() {
+            const generation = this.loadGeneration;
             try {
                 const initialFrames = this.uniqueIndices([0, 1, 2, this.frameCount - 1, this.frameCount - 2]);
                 await Promise.all(initialFrames.map((index) => this.loadFrame(index)));
+                if (generation !== this.loadGeneration) {
+                    return;
+                }
                 await this.showFrame(0, false);
+                if (generation !== this.loadGeneration) {
+                    return;
+                }
                 this.setReady();
                 this.preloadNearby(0);
                 this.syncAutoRotation();
             } catch (error) {
+                if (generation !== this.loadGeneration || error?.name === 'AbortError') {
+                    return;
+                }
                 this.fail('The 360° images could not be loaded.');
             }
         }
@@ -84,6 +96,7 @@
 
         loadFrame(index) {
             const normalized = this.wrapIndex(index);
+            const generation = this.loadGeneration;
             if (this.cache.has(normalized)) {
                 return Promise.resolve(this.cache.get(normalized));
             }
@@ -102,13 +115,29 @@
                     } catch (_) {
                         // The image is already usable after onload even when decode() is unavailable.
                     }
-                    this.pending.delete(normalized);
+                    if (generation !== this.loadGeneration) {
+                        const cancellation = new Error('Frame request cancelled');
+                        cancellation.name = 'AbortError';
+                        reject(cancellation);
+                        return;
+                    }
+                    if (this.pending.get(normalized) === request) {
+                        this.pending.delete(normalized);
+                    }
                     this.cache.set(normalized, image);
                     this.updateProgress();
                     resolve(image);
                 };
                 image.onerror = () => {
-                    this.pending.delete(normalized);
+                    if (this.pending.get(normalized) === request) {
+                        this.pending.delete(normalized);
+                    }
+                    if (generation !== this.loadGeneration) {
+                        const cancellation = new Error('Frame request cancelled');
+                        cancellation.name = 'AbortError';
+                        reject(cancellation);
+                        return;
+                    }
                     reject(new Error(`Unable to load frame ${normalized + 1}`));
                 };
                 image.src = this.frameUrl(normalized);
@@ -133,7 +162,10 @@
                     this.status.textContent = `Angle ${normalized + 1} of ${this.frameCount}`;
                 }
                 this.preloadNearby(normalized);
-            } catch (_) {
+            } catch (error) {
+                if (renderToken !== this.renderToken || error?.name === 'AbortError') {
+                    return;
+                }
                 this.fail('A required 360° image is unavailable.');
             }
         }
@@ -148,10 +180,7 @@
             });
 
             const schedule = window.requestIdleCallback || ((callback) => window.setTimeout(callback, 180));
-            if (this.idleHandle !== null) {
-                const cancel = window.cancelIdleCallback || window.clearTimeout;
-                cancel(this.idleHandle);
-            }
+            this.cancelIdlePreload();
             this.idleHandle = schedule(() => {
                 const directionFrames = [index + 4, index + 5, index + 6];
                 this.uniqueIndices(directionFrames).forEach((frame) => {
@@ -159,6 +188,15 @@
                 });
                 this.idleHandle = null;
             });
+        }
+
+        cancelIdlePreload() {
+            if (this.idleHandle === null) {
+                return;
+            }
+            const cancel = window.cancelIdleCallback || window.clearTimeout;
+            cancel(this.idleHandle);
+            this.idleHandle = null;
         }
 
         updateProgress() {
@@ -185,7 +223,14 @@
 
         fail(message) {
             this.stopAutoRotation();
+            this.root.classList.remove('is-sequence-ready', 'is-sequence-dragging');
             this.root.classList.add('has-sequence-error');
+            this.zoom = 1;
+            if (this.frameImage) {
+                this.frameImage.style.setProperty('--sequence-zoom', '1');
+                this.frameImage.src = this.posterImage;
+                this.frameImage.alt = `${this.vehicleName} studio photograph`;
+            }
             if (this.loader) {
                 this.loader.hidden = true;
             }
@@ -199,6 +244,9 @@
         }
 
         async retry() {
+            this.loadGeneration += 1;
+            this.renderToken += 1;
+            this.cancelIdlePreload();
             this.root.classList.remove('has-sequence-error');
             if (this.errorPanel) {
                 this.errorPanel.hidden = true;
@@ -410,6 +458,9 @@
 
         dispose() {
             this.stopAutoRotation();
+            this.loadGeneration += 1;
+            this.renderToken += 1;
+            this.cancelIdlePreload();
             this.abortController.abort();
             this.observer?.disconnect();
             this.cache.clear();

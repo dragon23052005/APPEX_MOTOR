@@ -55,7 +55,7 @@ public class InMemoryVehicleRepository implements VehicleRepository {
     );
 
     private static String hero(String slug) {
-        return "/assets/cars/" + slug + "/hero.png";
+        return "/assets/cars/" + slug + "/hero.webp";
     }
 
     private Vehicle vehicle(Long id, String slug, String manufacturer, String model, int year,
