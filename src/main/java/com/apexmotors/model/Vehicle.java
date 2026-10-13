@@ -2,6 +2,7 @@ package com.apexmotors.model;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Objects;
 
 public final class Vehicle {
 
@@ -22,13 +23,14 @@ public final class Vehicle {
     private final boolean featured;
     private final String tagline;
     private final String description;
+    private final VehicleImageSequence imageSequence;
     private final List<String> highlights;
 
     public Vehicle(Long id, String slug, String manufacturer, String model, int year,
                    String bodyStyle, String powertrain, String transmission, BigDecimal price,
                    int horsepower, double zeroToHundred, int topSpeed, String imagePath,
                    String accent, boolean featured, String tagline, String description,
-                   List<String> highlights) {
+                   VehicleImageSequence imageSequence, List<String> highlights) {
         this.id = id;
         this.slug = slug;
         this.manufacturer = manufacturer;
@@ -46,6 +48,7 @@ public final class Vehicle {
         this.featured = featured;
         this.tagline = tagline;
         this.description = description;
+        this.imageSequence = Objects.requireNonNull(imageSequence, "imageSequence must not be null");
         this.highlights = List.copyOf(highlights);
     }
 
@@ -66,6 +69,8 @@ public final class Vehicle {
     public boolean isFeatured() { return featured; }
     public String getTagline() { return tagline; }
     public String getDescription() { return description; }
+    public VehicleImageSequence getImageSequence() { return imageSequence; }
+    public boolean isViewerEnabled() { return imageSequence.viewerEnabled(); }
     public List<String> getHighlights() { return highlights; }
     public String getDisplayName() { return manufacturer + " " + model; }
 }

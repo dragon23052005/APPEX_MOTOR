@@ -3,6 +3,7 @@ package com.apexmotors.service;
 import com.apexmotors.dto.VehicleQuery;
 import com.apexmotors.dto.VehicleQuery.SortOption;
 import com.apexmotors.model.Vehicle;
+import com.apexmotors.model.VehicleImageSequence;
 import com.apexmotors.repository.InMemoryVehicleRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,5 +44,47 @@ class VehicleServiceTest {
     void throwsForUnknownSlug() {
         assertThatThrownBy(() -> vehicleService.getBySlug("not-a-car"))
             .isInstanceOf(VehicleNotFoundException.class);
+    }
+
+    @Test
+    void keepsThe360ViewerDisabledUntilRealSequencesExist() {
+        Vehicle nevera = vehicleService.getBySlug("rimac-nevera");
+        Vehicle ferrari = vehicleService.getBySlug("ferrari-sf90-stradale");
+
+        assertThat(nevera.isViewerEnabled()).isFalse();
+        assertThat(nevera.getImageSequence().posterImage()).isEqualTo(nevera.getImagePath());
+        assertThat(ferrari.isViewerEnabled()).isFalse();
+    }
+
+    @Test
+    void givesEveryVehicleItsOwnSlugSpecificStudioImage() {
+        List<Vehicle> vehicles = vehicleService.search(new VehicleQuery("", "", SortOption.FEATURED));
+
+        assertThat(vehicles)
+            .extracting(Vehicle::getImagePath)
+            .doesNotHaveDuplicates();
+
+        assertThat(vehicles)
+            .allSatisfy(vehicle -> assertThat(vehicle.getImagePath())
+                .isEqualTo("/assets/cars/" + vehicle.getSlug() + "/hero.png"));
+    }
+
+    @Test
+    void validatesImageSequenceMetadataBeforeEnablingViewer() {
+        assertThatThrownBy(() -> new VehicleImageSequence(true, 1,
+            "/assets/cars/demo/360/frame-{frame}.webp", "/images/black-hypercar.png"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("at least two frames");
+
+        assertThatThrownBy(() -> new VehicleImageSequence(true, 36,
+            "/assets/cars/demo/360/image.webp", "/images/black-hypercar.png"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("{frame}");
+
+        VehicleImageSequence sequence = new VehicleImageSequence(true, 36,
+            "/assets/cars/demo/360/frame-{frame}.webp", "/assets/cars/demo/hero.webp");
+
+        assertThat(sequence.viewerEnabled()).isTrue();
+        assertThat(sequence.frameCount()).isEqualTo(36);
     }
 }

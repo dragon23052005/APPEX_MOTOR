@@ -15,7 +15,7 @@
     <artifactId>apex-motors</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>APEX MOTORS</name>
-    <description>Phase 1 premium supercar showroom</description>
+    <description>APEX MOTORS cinematic supercar showroom</description>
 
     <properties>
         <java.version>21</java.version>

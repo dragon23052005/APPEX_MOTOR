@@ -1,25 +1,28 @@
-# APEX MOTORS — Phase 1
+# APEX MOTORS — Phase 2 Cinematic Showroom
 
-APEX MOTORS is a server-rendered premium supercar showroom built with Java 21, Spring Boot, Spring MVC, Thymeleaf, Bootstrap 5, and GSAP. Phase 1 uses an in-memory repository: there is no database, authentication, Node.js runtime, React, or Three.js dependency.
+APEX MOTORS is a server-rendered luxury automotive showroom built with Java 21, Spring Boot, Spring MVC, Thymeleaf, Bootstrap and GSAP. Phase 2 preserves the Phase 1 routes and backend architecture while replacing the previous real-time 3D experiment with a cinematic presentation and a reusable image-sequence 360° viewer.
 
-## Included in Phase 1
+There is no database, authentication, React, Node.js application runtime, Three.js, WebGL, Blender asset or GLB/GLTF model in this phase.
 
-- Cinematic, responsive homepage with an editorial luxury design system
-- Responsive Bootstrap navigation and accessible mobile menu
-- In-memory collection of eight demonstration vehicles
-- Vehicle search by name or powertrain
-- Manufacturer filtering
-- Price and horsepower sorting
-- Dynamic vehicle details at `/cars/{slug}`
-- Featured vehicle selection
-- About and contact pages
-- Jakarta Bean Validation and Post/Redirect/Get demo enquiry flow
-- Custom HTTP 404 experience
-- GSAP entrance, scroll, parallax, and count animations with reduced-motion support
-- A progressive-enhancement stage (`data-three-stage`) reserved for a future Three.js viewer
-- Spring MVC and service integration tests
+## Features
 
-Vehicle prices and specifications are illustrative showroom data for this demonstration and are not sales quotations.
+- Fullscreen cinematic homepage with restrained GSAP entrance, reveal and parallax motion
+- Editorial vehicle collection with server-side search, manufacturer filters and sorting
+- Dynamic vehicle details, specifications, highlights and private enquiry links
+- Reusable image-sequence 360° viewer with drag, touch, keyboard, autoplay, zoom, reset and fullscreen controls
+- Progressive frame loading, nearby-frame preloading, in-memory frame cache and image error fallback
+- Static studio presentation when a complete image sequence is unavailable
+- Dedicated generated studio hero for every named vehicle; no cross-model image reuse
+- Responsive navigation, mobile layouts and `prefers-reduced-motion` support
+- Validated contact form with demonstration submission handling
+- Custom 404 page
+- Replaceable repository abstraction backed by an in-memory Java implementation
+
+## Current 360° asset status
+
+The repository does not currently contain a complete, licensed multi-angle sequence for any vehicle. Therefore every vehicle intentionally has `viewerEnabled=false` and displays its studio image. The 360° controls are not rendered for unavailable sequences.
+
+The viewer code and Java metadata are complete and ready for real assets; the project does not copy one image into fake frames or simulate missing angles.
 
 ## Technology
 
@@ -27,28 +30,84 @@ Vehicle prices and specifications are illustrative showroom data for this demons
 - Spring Boot 3.5.7
 - Spring MVC and Thymeleaf
 - Maven 3.9+
-- Bootstrap 5.3.8 (CDN)
-- GSAP 3.13 (CDN)
-- HTML5, CSS3, vanilla JavaScript
+- Bootstrap 5.3.8 via CDN
+- GSAP 3.13 and ScrollTrigger via CDN
+- HTML5, CSS3 and modular vanilla JavaScript
 
-Bootstrap, GSAP, and Google Fonts use CDNs, so the polished UI requires an internet connection in the browser. The Java application itself has no external runtime service dependency.
+The application itself runs only on the Java/Spring Boot runtime. Bootstrap, GSAP and Google Fonts require browser internet access because they are loaded from CDNs.
 
 ## Architecture
 
 ```text
 src/main/java/com/apexmotors/
-├── controller/      MVC request handling
-├── dto/             Contact form and collection query DTOs
-├── model/           Domain model
-├── repository/      Replaceable VehicleRepository abstraction + in-memory adapter
-└── service/         Search, sorting, lookup, and demo submission logic
+|-- config/          Static media caching configuration
+|-- controller/      Spring MVC route handlers
+|-- dto/             Contact form and collection query DTOs
+|-- model/           Vehicle and optional image-sequence metadata
+|-- repository/      Replaceable abstraction + in-memory implementation
+`-- service/         Search, sorting, lookup and demo submission logic
 
 src/main/resources/
-├── templates/       Thymeleaf pages and reusable fragments
-└── static/          CSS, JavaScript, and original image assets
+|-- templates/       Thymeleaf pages and reusable fragments
+`-- static/
+    |-- assets/cars/  Per-vehicle generated hero images and future 360° sequences
+    |-- css/          Cinematic responsive design system
+    |-- images/       Shared homepage and editorial studio photographs
+    `-- js/           Site motion and reusable image-sequence viewer
 ```
 
-`VehicleRepository` deliberately exposes domain-oriented operations without tying callers to storage details. A future JPA adapter can implement the same interface while controllers and services remain unchanged.
+`VehicleRepository` remains storage-agnostic, so a later Spring Data JPA adapter can replace the in-memory repository without changing controllers or `VehicleService`.
+
+## Image-sequence metadata
+
+`Vehicle` owns a required `VehicleImageSequence` value with:
+
+- `viewerEnabled`
+- `frameCount`
+- `framePathPattern`
+- `posterImage`
+
+Disabled vehicles use `VehicleImageSequence.unavailable(posterImage)`. An enabled sequence must contain at least two frames and its pattern must contain `{frame}`. At runtime the token is replaced with a one-based, three-digit number.
+
+Example asset layout:
+
+```text
+src/main/resources/static/assets/cars/vehicle-slug/
+|-- hero.png
+|-- gallery/
+|   `-- detail-01.webp
+`-- 360/
+    |-- frame-001.webp
+    |-- frame-002.webp
+    `-- ... frame-036.webp
+```
+
+Example metadata after all files have been added and checked:
+
+```java
+new VehicleImageSequence(
+    true,
+    36,
+    "/assets/cars/vehicle-slug/360/frame-{frame}.webp",
+    "/assets/cars/vehicle-slug/hero.png"
+)
+```
+
+All frames must depict the same vehicle, framing and lighting. Confirm redistribution rights before committing an image sequence.
+
+## Viewer behaviour
+
+The viewer initially fetches only the current frame and a small group around it. It then preloads nearby frames and a limited forward group during browser idle time. It pauses automatic rotation when offscreen or when the tab is hidden, clears its cache on page exit, and retains the poster image if a required frame fails.
+
+Keyboard controls when a viewer is enabled:
+
+| Key | Action |
+|---|---|
+| Left / Right | Rotate one frame |
+| `+` / `-` | Zoom in / out |
+| Space | Play / pause |
+| Home | Reset angle and zoom |
+| `F` | Enter / exit fullscreen |
 
 ## Run from the command line
 
@@ -62,7 +121,7 @@ mvn spring-boot:run
 
 Open <http://localhost:8080>.
 
-To build and run the packaged application:
+Build and run the packaged application:
 
 ```powershell
 mvn clean package
@@ -77,32 +136,30 @@ mvn test
 
 ## Run in IntelliJ IDEA with Java 21
 
-1. Open IntelliJ IDEA and choose **File → Open**.
-2. Select this folder (the folder containing `pom.xml`) and choose **Open as Project**.
-3. Allow IntelliJ to import and sync the Maven project.
-4. Open **File → Project Structure → Project** and set **SDK** to a Java 21 JDK. Set **Language level** to **21**.
-5. Open **Settings → Build, Execution, Deployment → Build Tools → Maven → Runner** and set **JRE** to the same Java 21 JDK.
+1. Open IntelliJ IDEA and select **File → Open**.
+2. Choose the `APPEX_MOTOR` folder containing `pom.xml`.
+3. Wait for the Maven import and dependency download to finish.
+4. Open **File → Project Structure → Project**, select a Java 21 SDK and language level 21.
+5. Open **Settings → Build, Execution, Deployment → Build Tools → Maven → Runner** and select the same Java 21 JDK.
 6. Open `src/main/java/com/apexmotors/ApexMotorsApplication.java`.
-7. Click the green run icon beside `main`, or create an **Application** run configuration with main class `com.apexmotors.ApexMotorsApplication`.
-8. Visit <http://localhost:8080> after the console reports that Tomcat started on port 8080.
+7. Click the green Run icon beside `main`, then visit <http://localhost:8080>.
 
-If port 8080 is occupied, change `server.port` in `src/main/resources/application.properties`.
+If IntelliJ reports missing Spring or Jakarta packages, open the Maven tool window and click **Reload All Maven Projects**. Confirm that Maven uses JDK 21 rather than compiling the source folder as a plain Java project.
 
-## Primary routes
+## Routes
 
 | Route | Purpose |
 |---|---|
 | `/` | Cinematic homepage and featured vehicles |
-| `/collection` | Searchable, filterable, sortable catalog |
-| `/cars/{slug}` | Dynamic vehicle details |
+| `/collection` | Searchable, filterable and sortable showroom |
+| `/cars/{slug}` | Dynamic vehicle details with sequence viewer or honest static fallback |
 | `/about` | Brand philosophy |
-| `/contact` | Validated demonstration enquiry |
+| `/contact` | Server-validated demonstration enquiry |
 | Any unknown route | Custom 404 page |
 
-## Phase boundary
+## Phase boundary and limitations
 
-This implementation intentionally does not include a database, authentication, payments, admin tooling, or Three.js. These remain candidates for later phases. Contact submissions are validated and logged with a generated reference but are not persisted.
-
-## Visual assets
-
-The three automotive images in `src/main/resources/static/images` were generated specifically for this project with the built-in OpenAI image generation tool. They contain no intended manufacturer logos or model badges and serve as original showroom visuals.
+- No complete 360° frame set is bundled yet, so the static fallback is the truthful active experience.
+- Current vehicle specifications, prices and inventory are demonstration data, not sales quotations.
+- Current PNG studio photographs are original assets generated for this project. Future WebP/AVIF media can be added through the documented `assets/cars` structure.
+- Database persistence, authentication, paint configuration, door animation, engine audio and driving simulation remain out of scope.
