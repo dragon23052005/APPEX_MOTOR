@@ -19,7 +19,7 @@ There is still no database, authentication, React, or Node.js application runtim
 ### Added in Phase 2
 
 - Three.js `0.186.1` loaded only for vehicles that declare a 3D asset
-- GLB loading with percentage feedback and a retryable error state
+- GLB loading with percentage feedback, KTX2/Basis texture decoding, and a retryable error state
 - Mouse/touch orbit rotation, wheel/pinch zoom, and camera reset
 - Responsive WebGL canvas with capped mobile pixel ratio
 - Studio environment lighting, key/fill/rim lights, and soft ground shadows
@@ -39,10 +39,10 @@ Vehicle prices, specifications, images, and the representative concept visualiza
 - Maven 3.9+
 - Bootstrap 5.3.8 (CDN)
 - GSAP 3.13 (CDN)
-- Three.js 0.186.1 and official addons (CDN import map)
+- Three.js 0.186.1, official addons, and Basis transcoder (local static assets)
 - HTML5, CSS3, and modular vanilla JavaScript
 
-Bootstrap, GSAP, Google Fonts, and the Three.js modules use CDNs. The licensed GLB model itself is stored locally and served by Spring Boot.
+Bootstrap, GSAP, and Google Fonts use CDNs. Three.js, its required addons, the Basis transcoder, and the licensed GLB model are stored locally and served by Spring Boot.
 
 ## Architecture
 
@@ -61,7 +61,8 @@ src/main/resources/
     |-- css/          Responsive visual system and viewer states
     |-- images/       Static image fallbacks
     |-- js/           Site scripts and modular Three.js viewer
-    `-- models/       Local licensed GLB assets and license files
+    |-- models/       Local licensed GLB assets and license files
+    `-- vendor/       Local Three.js modules, KTX2 decoder, and MIT license
 ```
 
 `VehicleRepository` remains storage-agnostic. A future JPA implementation can replace the in-memory adapter without changing the controllers or `VehicleService`.
@@ -138,7 +139,7 @@ The viewer labels this asset as a representative concept visualization. It is no
 
 ## Current limitations and phase boundary
 
-- The Three.js library and addons require browser internet access because they are loaded from jsDelivr.
+- Bootstrap, GSAP, and Google Fonts still require browser internet access; the complete 3D viewer dependency chain is local.
 - The local GLB is approximately 9.8 MB, so its first visit can take time on slower mobile networks.
 - Visual browser QA depends on WebGL/GPU availability; static fallback remains usable without it.
 - Phase 2 intentionally excludes paint customization, door animation, engine audio, driving simulation, database persistence, and authentication.

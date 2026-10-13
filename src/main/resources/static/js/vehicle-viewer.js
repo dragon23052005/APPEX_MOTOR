@@ -1,27 +1,37 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 const initializedStages = new WeakSet();
 const modelRequests = new Map();
 
-function loadModelOnce(url, onProgress) {
+function loadModelOnce(url, renderer, onProgress) {
     if (modelRequests.has(url)) {
         onProgress?.(1, true);
         return modelRequests.get(url);
     }
 
     const request = new Promise((resolve, reject) => {
-        const loader = new GLTFLoader();
+        const textureLoader = new KTX2Loader()
+            .setTranscoderPath('/vendor/three/examples/jsm/libs/basis/')
+            .detectSupport(renderer);
+        const loader = new GLTFLoader().setKTX2Loader(textureLoader);
         loader.load(
             url,
-            resolve,
+            (gltf) => {
+                textureLoader.dispose();
+                resolve(gltf);
+            },
             (event) => {
                 const progress = event.total > 0 ? event.loaded / event.total : null;
                 onProgress?.(progress, false);
             },
-            reject
+            (error) => {
+                textureLoader.dispose();
+                reject(error);
+            }
         );
     });
 
@@ -71,7 +81,7 @@ class VehicleViewer {
             this.bindEvents();
             this.setLoadingProgress(null);
 
-            const gltf = await loadModelOnce(this.modelUrl, (progress, cached) => {
+            const gltf = await loadModelOnce(this.modelUrl, this.renderer, (progress, cached) => {
                 if (this.disposed) return;
                 if (cached) {
                     this.loadingText.textContent = 'Restoring 3D studio';

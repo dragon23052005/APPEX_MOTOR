@@ -51,7 +51,9 @@ class ApexMotorsWebTest {
             .andExpect(view().name("car-details"))
             .andExpect(content().string(org.hamcrest.Matchers.containsString("Nevera")))
             .andExpect(content().string(org.hamcrest.Matchers.containsString("/models/car-concept/CarConcept.glb")))
-            .andExpect(content().string(org.hamcrest.Matchers.containsString("vehicle-viewer-bootstrap.js")));
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("/vendor/three/build/three.module.min.js")))
+            .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("three@0.186.1"))))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("vehicle-viewer-bootstrap.js?v=2.0.1")));
 
         mockMvc.perform(get("/cars/ferrari-sf90-stradale"))
             .andExpect(status().isOk())
@@ -90,5 +92,14 @@ class ApexMotorsWebTest {
         mockMvc.perform(head("/models/car-concept/CarConcept.glb"))
             .andExpect(status().isOk())
             .andExpect(header().string("Cache-Control", org.hamcrest.Matchers.containsString("max-age=2592000")));
+
+        mockMvc.perform(head("/vendor/three/examples/jsm/libs/basis/basis_transcoder.wasm"))
+            .andExpect(status().isOk())
+            .andExpect(header().string("Content-Type", org.hamcrest.Matchers.containsString("application/wasm")))
+            .andExpect(header().string("Cache-Control", org.hamcrest.Matchers.containsString("max-age=2592000")));
+
+        mockMvc.perform(get("/js/vehicle-viewer.js"))
+            .andExpect(status().isOk())
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("setKTX2Loader")));
     }
 }

@@ -113,12 +113,12 @@
     <script type="importmap">
         {
             "imports": {
-                "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js",
-                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"
+                "three": "/vendor/three/build/three.module.min.js",
+                "three/addons/": "/vendor/three/examples/jsm/"
             }
         }
     </script>
-    <script type="module" th:src="@{/js/vehicle-viewer-bootstrap.js}"></script>
+    <script type="module" th:src="@{/js/vehicle-viewer-bootstrap.js(v='2.0.1')}"></script>
 </th:block>
 </body>
 </html>
