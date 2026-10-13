@@ -101,4 +101,25 @@ class ApexMotorsWebTest {
         mockMvc.perform(get("/models/car-concept/CarConcept.glb"))
             .andExpect(status().isNotFound());
     }
+
+    @Test
+    void everyNamedVehicleHasItsOwnStudioImageAsset() throws Exception {
+        String[] slugs = {
+            "ferrari-sf90-stradale",
+            "lamborghini-revuelto",
+            "mclaren-750s",
+            "porsche-911-gt3-rs",
+            "aston-martin-valhalla",
+            "rimac-nevera",
+            "koenigsegg-jesko-attack",
+            "mercedes-amg-one"
+        };
+
+        for (String slug : slugs) {
+            mockMvc.perform(get("/assets/cars/" + slug + "/hero.png"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", "image/png"))
+                .andExpect(header().string("Cache-Control", org.hamcrest.Matchers.containsString("max-age=2592000")));
+        }
+    }
 }

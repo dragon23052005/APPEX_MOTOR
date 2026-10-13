@@ -37,7 +37,7 @@
 
 <article th:fragment="vehicleCard(vehicle)" class="vehicle-card reveal" data-vehicle-card th:style="'--accent:' + ${vehicle.accent}">
     <a class="vehicle-card__image" th:href="@{/cars/{slug}(slug=${vehicle.slug})}" th:aria-label="'View ' + ${vehicle.displayName}">
-        <img th:src="${vehicle.imagePath}" th:alt="${vehicle.displayName}" width="1774" height="887" loading="lazy" decoding="async">
+        <img th:src="${vehicle.imagePath}" th:alt="${vehicle.displayName + ' in the APEX studio'}" width="1672" height="941" loading="lazy" decoding="async">
         <span class="vehicle-card__year" th:text="${vehicle.year}">2025</span>
         <span th:if="${vehicle.viewerEnabled}" class="vehicle-card__viewer">360° imagery</span>
         <span class="vehicle-card__arrow" aria-hidden="true">↗</span>

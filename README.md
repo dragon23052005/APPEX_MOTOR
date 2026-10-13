@@ -12,6 +12,7 @@ There is no database, authentication, React, Node.js application runtime, Three.
 - Reusable image-sequence 360° viewer with drag, touch, keyboard, autoplay, zoom, reset and fullscreen controls
 - Progressive frame loading, nearby-frame preloading, in-memory frame cache and image error fallback
 - Static studio presentation when a complete image sequence is unavailable
+- Dedicated generated studio hero for every named vehicle; no cross-model image reuse
 - Responsive navigation, mobile layouts and `prefers-reduced-motion` support
 - Validated contact form with demonstration submission handling
 - Custom 404 page
@@ -49,9 +50,9 @@ src/main/java/com/apexmotors/
 src/main/resources/
 |-- templates/       Thymeleaf pages and reusable fragments
 `-- static/
-    |-- assets/cars/  Future per-vehicle hero, gallery and 360° sequences
+    |-- assets/cars/  Per-vehicle generated hero images and future 360° sequences
     |-- css/          Cinematic responsive design system
-    |-- images/       Current generated studio photographs
+    |-- images/       Shared homepage and editorial studio photographs
     `-- js/           Site motion and reusable image-sequence viewer
 ```
 
@@ -72,7 +73,7 @@ Example asset layout:
 
 ```text
 src/main/resources/static/assets/cars/vehicle-slug/
-|-- hero.webp
+|-- hero.png
 |-- gallery/
 |   `-- detail-01.webp
 `-- 360/
@@ -88,7 +89,7 @@ new VehicleImageSequence(
     true,
     36,
     "/assets/cars/vehicle-slug/360/frame-{frame}.webp",
-    "/assets/cars/vehicle-slug/hero.webp"
+    "/assets/cars/vehicle-slug/hero.png"
 )
 ```
 

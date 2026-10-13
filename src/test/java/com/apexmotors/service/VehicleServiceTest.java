@@ -57,6 +57,19 @@ class VehicleServiceTest {
     }
 
     @Test
+    void givesEveryVehicleItsOwnSlugSpecificStudioImage() {
+        List<Vehicle> vehicles = vehicleService.search(new VehicleQuery("", "", SortOption.FEATURED));
+
+        assertThat(vehicles)
+            .extracting(Vehicle::getImagePath)
+            .doesNotHaveDuplicates();
+
+        assertThat(vehicles)
+            .allSatisfy(vehicle -> assertThat(vehicle.getImagePath())
+                .isEqualTo("/assets/cars/" + vehicle.getSlug() + "/hero.png"));
+    }
+
+    @Test
     void validatesImageSequenceMetadataBeforeEnablingViewer() {
         assertThatThrownBy(() -> new VehicleImageSequence(true, 1,
             "/assets/cars/demo/360/frame-{frame}.webp", "/images/black-hypercar.png"))
