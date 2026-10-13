@@ -27,7 +27,9 @@ class ApexMotorsWebTest {
         mockMvc.perform(get("/"))
             .andExpect(status().isOk())
             .andExpect(view().name("index"))
-            .andExpect(content().string(org.hamcrest.Matchers.containsString("The art")));
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("The art")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("gsap.min.js")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("ScrollTrigger.min.js")));
 
         mockMvc.perform(get("/collection").param("manufacturer", "Rimac").param("sort", "PRICE_DESC"))
             .andExpect(status().isOk())
@@ -88,15 +90,28 @@ class ApexMotorsWebTest {
 
     @Test
     void imageSequenceViewerAndCachedStudioImageAreAvailable() throws Exception {
-        mockMvc.perform(get("/images/black-hypercar.png"))
+        mockMvc.perform(get("/images/black-hypercar.webp"))
             .andExpect(status().isOk())
+            .andExpect(header().string("Content-Type", "image/webp"))
             .andExpect(header().string("Cache-Control", org.hamcrest.Matchers.containsString("max-age=2592000")));
+
+        mockMvc.perform(get("/images/black-hypercar-960.webp"))
+            .andExpect(status().isOk())
+            .andExpect(header().string("Content-Type", "image/webp"));
 
         mockMvc.perform(get("/js/image-sequence-viewer.js"))
             .andExpect(status().isOk())
+            .andExpect(header().string("Cache-Control", org.hamcrest.Matchers.containsString("max-age=604800")))
             .andExpect(content().string(org.hamcrest.Matchers.containsString("data-image-sequence")))
             .andExpect(content().string(org.hamcrest.Matchers.containsString("preloadNearby")))
-            .andExpect(content().string(org.hamcrest.Matchers.containsString("requestFullscreen")));
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("requestFullscreen")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("this.posterImage")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("this.loadGeneration")));
+
+        mockMvc.perform(get("/js/app.js"))
+            .andExpect(status().isOk())
+            .andExpect(header().string("Cache-Control", org.hamcrest.Matchers.containsString("max-age=604800")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("gsap.registerPlugin(scrollTrigger)")));
 
         mockMvc.perform(get("/models/car-concept/CarConcept.glb"))
             .andExpect(status().isNotFound());
@@ -116,10 +131,14 @@ class ApexMotorsWebTest {
         };
 
         for (String slug : slugs) {
-            mockMvc.perform(get("/assets/cars/" + slug + "/hero.png"))
+            mockMvc.perform(get("/assets/cars/" + slug + "/hero.webp"))
                 .andExpect(status().isOk())
-                .andExpect(header().string("Content-Type", "image/png"))
+                .andExpect(header().string("Content-Type", "image/webp"))
                 .andExpect(header().string("Cache-Control", org.hamcrest.Matchers.containsString("max-age=2592000")));
+
+            mockMvc.perform(get("/assets/cars/" + slug + "/hero-960.webp"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", "image/webp"));
         }
     }
 }

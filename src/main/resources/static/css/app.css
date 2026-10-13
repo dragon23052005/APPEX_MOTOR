@@ -263,6 +263,19 @@ img {
     background: #fff;
 }
 
+.apex-nav a:focus-visible,
+.navbar-toggler:focus-visible,
+.btn-apex:focus-visible,
+.text-link:focus-visible,
+.filter-bar input:focus-visible,
+.filter-bar select:focus-visible,
+.filter-submit:focus-visible,
+.sequence-error button:focus-visible,
+.sequence-toolbar button:focus-visible {
+    outline: 2px solid var(--red);
+    outline-offset: 3px;
+}
+
 .btn-apex {
     display: inline-flex;
     align-items: center;
