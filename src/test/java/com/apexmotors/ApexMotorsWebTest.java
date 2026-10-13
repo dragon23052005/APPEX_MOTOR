@@ -98,6 +98,11 @@ class ApexMotorsWebTest {
             .andExpect(header().string("Content-Type", org.hamcrest.Matchers.containsString("application/wasm")))
             .andExpect(header().string("Cache-Control", org.hamcrest.Matchers.containsString("max-age=2592000")));
 
+        mockMvc.perform(head("/vendor/three/build/three.core.js"))
+            .andExpect(status().isOk())
+            .andExpect(header().string("Content-Type", org.hamcrest.Matchers.containsString("javascript")))
+            .andExpect(header().string("Cache-Control", org.hamcrest.Matchers.containsString("max-age=2592000")));
+
         mockMvc.perform(get("/js/vehicle-viewer.js"))
             .andExpect(status().isOk())
             .andExpect(content().string(org.hamcrest.Matchers.containsString("setKTX2Loader")));
