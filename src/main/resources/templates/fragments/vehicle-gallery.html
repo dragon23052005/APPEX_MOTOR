@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<body>
+<section th:fragment="gallery(gallery)" id="ferrari-gallery" class="cinema-gallery section-pad"
+         data-vehicle-gallery lang="en" aria-labelledby="cinema-title">
+    <div class="container-wide">
+        <header class="cinema-gallery__heading">
+            <div>
+                <p class="section-number">02 / The curated collection</p>
+                <p class="eyebrow">Ferrari SF90 Stradale</p>
+                <h2 id="cinema-title">Every angle.<br><span>A new perspective.</span></h2>
+            </div>
+            <div class="cinema-gallery__intro">
+                <span class="cinema-gallery__edition" th:text="${gallery.images.size()} + ' FRAMES / ONE JOURNEY'">24 FRAMES</span>
+                <p>From sculpted lines to the smallest detail. Explore a curated collection of perspectives, arranged to tell a story.</p>
+                <small>This is a photo gallery, not a 3D model or a continuous 360° rotation. Some images show different configurations.</small>
+            </div>
+        </header>
+
+        <div data-gallery-home>
+            <div class="cinema-gallery__shell" data-gallery-shell tabindex="0" aria-label="Ferrari photo gallery">
+                <div class="cinema-gallery__toolbar" data-gallery-controls hidden>
+                    <div class="cinema-gallery__filters" role="group" aria-label="Filter images by category">
+                        <button type="button" data-category="all" aria-pressed="true">All</button>
+                        <button type="button" data-category="exterior" aria-pressed="false">Exterior</button>
+                        <button type="button" data-category="details" aria-pressed="false">Details</button>
+                        <button type="button" data-category="interior" aria-pressed="false">Interior</button>
+                    </div>
+                    <div class="cinema-gallery__tools" role="group" aria-label="Image controls">
+                        <button type="button" data-action="zoom-out" aria-label="Zoom out" disabled>−</button>
+                        <output data-zoom-label aria-label="Zoom level">100%</output>
+                        <button type="button" data-action="zoom-in" aria-label="Zoom in">+</button>
+                        <button type="button" data-action="fullscreen" aria-label="Open fullscreen" aria-haspopup="dialog">⛶</button>
+                        <button type="button" data-action="close" aria-label="Close fullscreen" hidden>✕</button>
+                    </div>
+                </div>
+
+                <div class="cinema-gallery__stage" data-gallery-stage aria-busy="false">
+                    <div class="cinema-gallery__canvas" data-gallery-canvas>
+                        <img class="cinema-gallery__image" data-gallery-layer
+                             th:src="@{${gallery.firstImage.imageUrl}}" th:alt="${gallery.firstImage.title + '. ' + gallery.firstImage.description}"
+                             th:width="${gallery.firstImage.width}" th:height="${gallery.firstImage.height}"
+                             loading="lazy" decoding="async" draggable="false">
+                        <img class="cinema-gallery__image" data-gallery-layer alt="" aria-hidden="true" hidden draggable="false">
+                    </div>
+                    <div class="cinema-gallery__loading" data-gallery-loading role="status" hidden><i aria-hidden="true"></i> Preparing image…</div>
+                    <div class="cinema-gallery__error" data-gallery-error role="alert" hidden>
+                        <span data-gallery-error-message>Unable to load this image. The previous image remains visible.</span>
+                        <button type="button" data-action="retry">Try again</button>
+                    </div>
+                    <button type="button" class="cinema-gallery__arrow cinema-gallery__arrow--prev" data-action="prev"
+                            aria-label="Previous image" data-gallery-controls hidden>←</button>
+                    <button type="button" class="cinema-gallery__arrow cinema-gallery__arrow--next" data-action="next"
+                            aria-label="Next image" data-gallery-controls hidden>→</button>
+                </div>
+
+                <div class="cinema-gallery__progress" role="progressbar" aria-label="Gallery progress"
+                     aria-valuemin="1" aria-valuenow="1" th:aria-valuemax="${gallery.images.size()}" data-gallery-progress>
+                    <span th:style="'width:' + ${100.0 / gallery.images.size()} + '%'" data-gallery-progress-bar></span>
+                </div>
+                <div class="cinema-gallery__caption">
+                    <div class="cinema-gallery__caption-copy" aria-live="polite" aria-atomic="true">
+                        <p class="eyebrow" data-gallery-category th:text="${gallery.firstImage.categoryLabel}">Exterior</p>
+                        <h3 data-gallery-title th:text="${gallery.firstImage.title}">First impressions</h3>
+                        <p data-gallery-description th:text="${gallery.firstImage.description}"></p>
+                    </div>
+                    <div class="cinema-gallery__position">
+                        <p><strong data-gallery-index>01</strong><span>/</span><span data-gallery-count th:text="${gallery.images.size()}">24</span></p>
+                        <small data-gallery-hint>Select a thumbnail to explore</small>
+                    </div>
+                </div>
+
+                <nav class="cinema-gallery__filmstrip" data-gallery-filmstrip aria-label="Choose a Ferrari view">
+                    <a th:each="item, status : ${gallery.images}" th:href="@{${item.originalUrl}}" target="_blank" rel="noopener"
+                       class="cinema-gallery__thumb" th:aria-current="${status.first ? 'true' : 'false'}"
+                       th:aria-label="${status.count + '. ' + item.title}" data-gallery-item
+                       th:attr="data-id=${item.id},data-image-url=@{${item.imageUrl}},data-category=${item.category},
+                                data-category-label=${item.categoryLabel},data-title=${item.title},data-description=${item.description},
+                                data-transition=${item.transitionStyle},data-width=${item.width},data-height=${item.height}">
+                        <img th:src="@{${item.thumbnailUrl}}" alt="" width="360" height="240" loading="lazy" decoding="async" draggable="false">
+                        <span th:text="${#numbers.formatInteger(status.count, 2)}">01</span>
+                    </a>
+                </nav>
+                <noscript><p class="cinema-gallery__notice">JavaScript is disabled. Select a thumbnail to open the original image in a new tab.</p></noscript>
+            </div>
+        </div>
+        <dialog class="cinema-gallery__dialog" data-gallery-dialog aria-label="Fullscreen Ferrari gallery"></dialog>
+        <p class="cinema-gallery__footnote">APEX EDITORIAL <span>User-supplied images · Original content preserved</span></p>
+    </div>
+</section>
+</body>
+</html>
