@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments/site :: head(${vehicle.displayName + ' — APEX MOTORS'}, ${vehicle.tagline})}"></head>
-<body class="detail-page">
+<body class="detail-page" th:classappend="${gallery != null} ? 'has-cinema-gallery'">
 <nav th:replace="~{fragments/site :: nav(${activePage})}"></nav>
 
 <main>
@@ -62,6 +62,8 @@
                 <p class="eyebrow" th:text="${vehicle.manufacturer}">Ferrari</p>
                 <h1 th:text="${vehicle.model}">SF90 Stradale</h1>
                 <p th:text="${vehicle.tagline}">Tagline</p>
+                <a th:if="${gallery != null}" class="gallery-jump" href="#ferrari-gallery"
+                   th:text="'Explore ' + ${gallery.images.size()} + ' perspectives ↘'">Explore the gallery ↘</a>
             </div>
             <div class="detail-price">
                 <small>Indicative price</small>
@@ -99,7 +101,10 @@
         </div>
     </section>
 
-    <section class="detail-gallery section-pad" aria-labelledby="gallery-title">
+    <th:block th:if="${gallery != null}">
+        <section th:replace="~{fragments/vehicle-gallery :: gallery(${gallery})}"></section>
+    </th:block>
+    <section th:unless="${gallery != null}" class="detail-gallery section-pad" aria-labelledby="gallery-title">
         <div class="container-wide">
             <div class="detail-gallery__heading reveal">
                 <div><p class="section-number">02 / Studio</p><h2 id="gallery-title">Every line,<br><span>considered.</span></h2></div>
@@ -136,5 +141,6 @@
 <footer th:replace="~{fragments/site :: footer}"></footer>
 <th:block th:replace="~{fragments/site :: scripts}"></th:block>
 <script th:src="@{/js/image-sequence-viewer.js(v='2.2.1')}" defer></script>
+<script th:if="${gallery != null}" th:src="@{/js/vehicle-gallery.js(v='1.0.3')}" defer></script>
 </body>
 </html>

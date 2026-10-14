@@ -13,6 +13,7 @@ There is no database, authentication, React, Node.js application runtime, Three.
 - Progressive frame loading, nearby-frame preloading, in-memory frame cache and image error fallback
 - Static studio presentation when a complete image sequence is unavailable
 - Dedicated generated studio hero for every named vehicle; no cross-model image reuse
+- Ferrari SF90 Stradale editorial gallery: 24 supplied photographs, English captions, category filters, zoom and fullscreen lightbox (not a 360° rotation)
 - Responsive navigation, mobile layouts and `prefers-reduced-motion` support
 - Validated contact form with demonstration submission handling
 - Custom 404 page
@@ -137,7 +138,7 @@ mvn test
 ## Run in IntelliJ IDEA with Java 21
 
 1. Open IntelliJ IDEA and select **File → Open**.
-2. Choose the `APPEX_MOTOR` folder containing `pom.xml`.
+2. Choose the `APPEX_MOTOR_PHASE2` folder containing `pom.xml`.
 3. Wait for the Maven import and dependency download to finish.
 4. Open **File → Project Structure → Project**, select a Java 21 SDK and language level 21.
 5. Open **Settings → Build, Execution, Deployment → Build Tools → Maven → Runner** and select the same Java 21 JDK.
@@ -165,3 +166,33 @@ The default configuration enables Thymeleaf template caching for production-like
 - Current vehicle specifications, prices and inventory are demonstration data, not sales quotations.
 - Current per-vehicle and shared studio photographs are WebP assets generated for this project, with 960-pixel responsive variants for mobile and card layouts. Future AVIF media can be added through the documented `assets/cars` structure.
 - Database persistence, authentication, paint configuration, door animation, engine audio and driving simulation remain out of scope.
+
+## Ferrari multi-angle gallery
+
+Preview: [Ferrari SF90 Stradale gallery](http://localhost:8080/cars/ferrari-sf90-stradale#ferrari-gallery).
+Open the Ferrari detail page and use **Explore 24 perspectives**. The original hero and other vehicle pages remain unchanged.
+
+This is an editorial photo gallery, **not** a true 360° sequence. All 24 supplied PNGs are preserved in
+`src/main/resources/static/assets/cars/ferrari-sf90-stradale/ferrari_sf90_20_views/`.
+Several supplied views differ in door configuration, seat colors or body details; these are documented rather than corrected by inventing images.
+
+- Source of truth: `src/main/resources/galleries/ferrari-sf90-stradale.json`. Edit `displayOrder` (unique positive numbers), category, English title/description and transition hint; restart Spring Boot to reload the manifest.
+- The JSON repository loads and validates local original/full/thumbnail assets once at startup. Invalid entries fail fast with the asset path in the error.
+- Full-size WebP delivery copies and 360px thumbnails are in `assets/cars/ferrari-sf90-stradale/gallery/`. Browser code retains at most five decoded image promises and preloads only adjacent views, after the gallery approaches the viewport.
+- Use arrows / touch swipe / thumbnails to change photographs. `+` / `-` zoom; `0` resets zoom. Drag a zoomed image to pan, not to rotate a car.
+- The fullscreen button opens a native modal lightbox that fills the browser viewport; Escape or ✕ closes it and restores focus. It does not request OS-level fullscreen, so browser chrome can remain visible.
+- Category filtering preserves the current photograph if it belongs to the selected category, and otherwise selects that category's first ordered image. There is no autoplay.
+- GSAP animates the viewer when available. Web Animations is the local fallback; reduced motion skips transitions. No new CDN or frontend runtime is needed.
+- Without JavaScript, the initial photo and all thumbnail links still work; each link opens its untouched PNG source.
+
+Checks:
+
+```powershell
+mvn verify
+# Optional development-only JS tests; Node is not needed to run the application:
+node --test tools/vehicle-gallery.test.cjs
+```
+
+To regenerate delivery images after intentionally changing supplied images or manifest URLs, install Pillow in your Python development environment and run `python tools/prepare_ferrari_gallery.py`. This checks coverage/dimensions and original checksums; it never modifies the PNG sources. Committed WebPs make Python unnecessary for normal Maven builds and application startup. Change the asset URL when replacing an image because image responses are cached for 30 days; bump the CSS/JS version query when changing viewer code.
+
+Full image classification, implementation notes, executed tests and remaining limitations: [FERRARI_GALLERY_REPORT.md](FERRARI_GALLERY_REPORT.md).
