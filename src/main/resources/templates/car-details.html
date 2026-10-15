@@ -12,13 +12,13 @@
              th:attr="data-viewer-enabled=${vehicle.imageSequence.viewerEnabled},
                       data-frame-count=${vehicle.imageSequence.frameCount},
                       data-frame-pattern=${vehicle.imageSequence.framePathPattern},
-                      data-poster-image=${vehicle.imageSequence.posterImage},
+                      data-poster-image=@{${vehicle.imageSequence.posterImage}},
                       data-auto-rotate=${vehicle.viewerEnabled},
                       data-vehicle-name=${vehicle.displayName}"
              th:aria-label="${vehicle.viewerEnabled ? 'Interactive 360 degree image viewer for ' + vehicle.displayName : 'Studio photograph of ' + vehicle.displayName}"
              th:tabindex="${vehicle.viewerEnabled ? '0' : null}">
             <div class="image-sequence-viewer__stage" data-sequence-stage>
-                <img data-sequence-frame th:src="${vehicle.imageSequence.posterImage}" th:alt="${vehicle.displayName}"
+                <img data-sequence-frame th:src="@{${vehicle.imageSequence.posterImage}}" th:alt="${vehicle.displayName}"
                      width="1672" height="941" fetchpriority="high" draggable="false">
             </div>
             <div class="detail-hero__shade"></div>
@@ -112,8 +112,8 @@
                 <p th:if="${vehicle.viewerEnabled}">Explore the vehicle through a complete sequence of real, consistent studio angles.</p>
             </div>
             <figure class="detail-gallery__frame image-reveal">
-                <img th:src="${vehicle.imagePath}"
-                     th:srcset="${#strings.replace(vehicle.imagePath, 'hero.webp', 'hero-960.webp') + ' 960w, ' + vehicle.imagePath + ' 1672w'}"
+                <img th:src="@{${vehicle.imagePath}}"
+                     th:srcset="@{${#strings.replace(vehicle.imagePath, 'hero.webp', 'hero-960.webp')}} + ' 960w, ' + @{${vehicle.imagePath}} + ' 1672w'"
                      sizes="(max-width: 991px) 100vw, 58vw"
                      th:alt="${vehicle.displayName + ' studio view'}" width="1672" height="941" loading="lazy" decoding="async">
                 <figcaption><span th:text="${vehicle.manufacturer + ' / ' + vehicle.model}">Vehicle</span><span>APEX studio selection</span></figcaption>
