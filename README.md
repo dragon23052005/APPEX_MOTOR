@@ -4,6 +4,22 @@ APEX MOTORS is a server-rendered luxury automotive showroom built with Java 21, 
 
 There is no database, authentication, React, Node.js application runtime, Three.js, WebGL, Blender asset or GLB/GLTF model in this phase.
 
+## Start on another computer
+
+Clone **the `phase-2-cinematic-showroom` branch** (the latest fixes are not automatically merged into `main`):
+
+```shell
+git clone --branch phase-2-cinematic-showroom --single-branch https://github.com/dragon23052005/APPEX_MOTOR.git APEX-MOTORS
+```
+
+Alternatively, select that branch on GitHub before choosing **Code → Download ZIP**, then extract the complete ZIP.
+
+Open the downloaded **`pom.xml` as a project** in IntelliJ, let Maven finish syncing, and run the shared **APEX MOTORS** configuration. The checkout can have any folder name and live anywhere; do not copy `.idea` from another computer.
+
+**Required on each computer:** a JDK 21 installation and internet access for the first Maven/dependency download. If IntelliJ cannot find a JDK, choose **Download JDK → 21** in Project SDK once. JDK locations are machine-specific and are deliberately not committed. No separate Maven installation, database, secrets, Node.js, Python or manual image-path configuration is needed to run the application. Browser CDN dependencies still require internet access while using the site.
+
+The repository includes the official Maven Wrapper, pinned to Maven **3.9.16**, plus a relative-path IntelliJ run configuration. Maven reports a clear error if it is launched with the wrong Java version. All required vehicle images are committed and packaged as classpath resources.
+
 ## Features
 
 - Fullscreen cinematic homepage with restrained GSAP entrance, reveal and parallax motion
@@ -30,7 +46,7 @@ The viewer code and Java metadata are complete and ready for real assets; the pr
 - Java 21 LTS
 - Spring Boot 3.5.7
 - Spring MVC and Thymeleaf
-- Maven 3.9+
+- Maven 3.9.16 through the included Maven Wrapper
 - Bootstrap 5.3.8 via CDN
 - GSAP 3.13 and ScrollTrigger via CDN
 - HTML5, CSS3 and modular vanilla JavaScript
@@ -112,42 +128,50 @@ Keyboard controls when a viewer is enabled:
 
 ## Run from the command line
 
-Prerequisites: JDK 21 and Maven 3.9 or newer.
+Prerequisites: JDK 21 and internet access for the first dependency download. Run commands from the directory containing `pom.xml`. On Windows, set `JAVA_HOME` to your own JDK 21 installation if it is not already configured. IntelliJ can manage its Project SDK independently of the terminal.
 
 ```powershell
 java -version
-mvn -version
-mvn spring-boot:run
+.\mvnw.cmd -version
+.\mvnw.cmd spring-boot:run
 ```
+
+On macOS/Linux use `./mvnw` instead of `.\mvnw.cmd`. If a ZIP extraction tool discards executable permissions, run `sh mvnw spring-boot:run` or restore the executable bit with `chmod +x mvnw`.
 
 Open <http://localhost:8080>.
 
 Build and run the packaged application:
 
 ```powershell
-mvn clean package
+.\mvnw.cmd clean verify
 java -jar target/apex-motors-0.0.1-SNAPSHOT.jar
 ```
 
 Run tests only:
 
 ```powershell
-mvn test
+.\mvnw.cmd test
 ```
 
 ## Run in IntelliJ IDEA with Java 21
 
-1. Open IntelliJ IDEA and select **File → Open**.
-2. Choose the `APPEX_MOTOR_PHASE2` folder containing `pom.xml`.
-3. Wait for the Maven import and dependency download to finish.
-4. Open **File → Project Structure → Project**, select a Java 21 SDK and language level 21.
-5. Open **Settings → Build, Execution, Deployment → Build Tools → Maven → Runner** and select the same Java 21 JDK.
-6. Open `src/main/java/com/apexmotors/ApexMotorsApplication.java`.
-7. Click the green Run icon beside `main`, then visit <http://localhost:8080>.
+1. Select **File → Open**, choose the downloaded repository's **`pom.xml`**, and choose **Open as Project**. Do not open `src` as a plain Java project.
+2. Wait for Maven sync. IntelliJ detects the committed wrapper on a fresh Maven import; no absolute Maven path is shared.
+3. If prompted for a Project SDK, select an installed **JDK 21**, or choose **Download JDK → 21**. This is a one-time prerequisite on each computer, not a change to application configuration.
+4. Select **APEX MOTORS** from the Run dropdown and click **Run**. The shared configuration in `.run/APEX MOTORS.run.xml` runs Maven's `spring-boot:run` with the `dev` profile and uses `$PROJECT_DIR$`, not the author's local path.
+5. Open <http://localhost:8080>.
 
-If IntelliJ reports missing Spring or Jakarta packages, open the Maven tool window and click **Reload All Maven Projects**. Confirm that Maven uses JDK 21 rather than compiling the source folder as a plain Java project.
+If the shared Run configuration has not appeared after import, open the **Maven** tool window and run **Plugins → spring-boot → spring-boot:run**, or run `.\mvnw.cmd spring-boot:run` in the IntelliJ terminal. Running `ApexMotorsApplication.main` is also supported after Maven sync.
 
-The default configuration enables Thymeleaf template caching for production-like performance. While actively editing templates in IntelliJ, add `--spring.profiles.active=dev` to the run configuration's program arguments to disable that cache.
+If IntelliJ reports missing Spring or Jakarta packages, use **Reload All Maven Projects** and check the Maven sync output. For an existing IDE project with overridden Maven settings, select **Use Maven wrapper** and **Project JDK (21)** under **Settings → Build, Execution, Deployment → Build Tools → Maven** and its **Runner** section. Corporate proxies or offline mode must be handled in that computer's Maven settings; no credentials are stored in this repository.
+
+The shared Run configuration already enables the `dev` profile to disable template caching. Packaged production runs keep template caching enabled. If port 8080 is occupied, stop your previous APEX run; alternatively use `.\mvnw.cmd spring-boot:run '-Dspring-boot.run.arguments=--server.port=8081'` and open port 8081. No source-file edit is needed.
+
+See the official [Maven Wrapper documentation](https://maven.apache.org/tools/wrapper/) and [IntelliJ Maven import instructions](https://www.jetbrains.com/help/idea/maven-support.html) for wrapper/import behavior.
+
+### Portability verification
+
+On 15 October 2026, the staged project was exported to a new Windows folder with spaces in its name, without `.idea`, prior `target` output or unrelated local files. The committed wrapper ran `clean verify` successfully: **26 Java tests** passed and the executable JAR was built. All **11 optional JavaScript tests** passed. The same Maven goal and `dev` profile as the shared IntelliJ configuration started successfully; homepage, collection, about, contact and Ferrari routes returned HTTP 200, as did all 16 versioned hero variants and all 24 Ferrari gallery delivery images. The existing machine's JDK 21 and Maven dependency cache were used. This verifies a clean project copy on Windows, not a physical second computer or a macOS/Linux IntelliJ installation.
 
 ## Routes
 
@@ -165,6 +189,7 @@ The default configuration enables Thymeleaf template caching for production-like
 - No complete 360° frame set is bundled yet, so the static fallback is the truthful active experience.
 - Current vehicle specifications, prices and inventory are demonstration data, not sales quotations.
 - Current per-vehicle and shared studio photographs are WebP assets generated for this project, with 960-pixel responsive variants for mobile and card layouts. Future AVIF media can be added through the documented `assets/cars` structure.
+- Vehicle hero URLs (including both `srcset` variants and detail-page posters) use [Spring MVC content versioning](https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-config/static-resources.html). Replacing a hero image and restarting the application produces a new URL, bypassing older cached responses while retaining the 30-day image cache. Original unversioned asset URLs remain available. If an already-open page shows broken images, reload it with Ctrl+F5; in IntelliJ, rebuild/restart the correct checkout first if resource changes have not been copied to `target/classes`.
 - Database persistence, authentication, paint configuration, door animation, engine audio and driving simulation remain out of scope.
 
 ## Ferrari multi-angle gallery
@@ -188,7 +213,7 @@ Several supplied views differ in door configuration, seat colors or body details
 Checks:
 
 ```powershell
-mvn verify
+.\mvnw.cmd verify
 # Optional development-only JS tests; Node is not needed to run the application:
 node --test tools/vehicle-gallery.test.cjs
 ```

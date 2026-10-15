@@ -1,6 +1,6 @@
 # Ferrari SF90 Stradale — Phase 2 Gallery Report
 
-Reviewed: 14 October 2026. Project: `C:\Users\long5\Downloads\APPEX_MOTOR_PHASE2`.
+Reviewed: 14 October 2026. Project: APEX MOTORS, Phase 2 cinematic showroom.
 Branch: `phase-2-cinematic-showroom`. No commits, pushes, merges or branch deletions.
 
 ## 1. Image analysis
@@ -198,21 +198,20 @@ Maven reports the existing Mockito/Byte Buddy dynamic Java-agent warning on Java
 
 Gallery URL: [http://localhost:8080/cars/ferrari-sf90-stradale#ferrari-gallery](http://localhost:8080/cars/ferrari-sf90-stradale#ferrari-gallery).
 
-1. Open **the correct project**, `C:\Users\long5\Downloads\APPEX_MOTOR_PHASE2\pom.xml`, in IntelliJ as a Maven project.
+1. Download the `phase-2-cinematic-showroom` branch and open its root **`pom.xml`** in IntelliJ as a Maven project. The checkout directory can have any name or location.
 2. Use Java 21 for Project SDK and Maven Runner. Reload All Maven Projects if dependencies have not been imported.
-3. Run `com.apexmotors.ApexMotorsApplication`. Stop an existing preview first if it occupies port 8080, or use `--server.port=8081` and adjust the URL.
+3. Run the shared **APEX MOTORS** configuration (Maven Wrapper and `dev` profile). Running `com.apexmotors.ApexMotorsApplication` after Maven sync also works. Stop an existing preview first if it occupies port 8080, or use `--server.port=8081` and adjust the URL.
 4. Open the Ferrari detail page and choose **Explore 24 perspectives**, or use the anchored URL above.
 5. Restart the application to reload manifest/cached template changes. Hard-refresh the browser with Ctrl+F5 after updating. For template development, use `--spring.profiles.active=dev`; the manifest still loads at startup.
 
-Command-line alternative:
+Command-line alternative, from the checkout directory containing `pom.xml`:
 
 ```powershell
-cd C:\Users\long5\Downloads\APPEX_MOTOR_PHASE2
-mvn verify
+.\mvnw.cmd verify
 java -jar target/apex-motors-0.0.1-SNAPSHOT.jar
 ```
 
-Node and Python are not required to run the application. Optional test/asset-preparation commands and manifest editing instructions are in the README.
+On macOS/Linux, use `./mvnw verify`. JDK 21 must be installed or downloaded once on each computer; Maven is provided by the wrapper. Node and Python are not required to run the application. Current setup instructions, optional test/asset-preparation commands and manifest editing instructions are in the README.
 
 ## 5. Git safety and scope
 

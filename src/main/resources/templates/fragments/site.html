@@ -38,8 +38,8 @@
 
 <article th:fragment="vehicleCard(vehicle)" class="vehicle-card reveal" data-vehicle-card th:style="'--accent:' + ${vehicle.accent}">
     <a class="vehicle-card__image" th:href="@{/cars/{slug}(slug=${vehicle.slug})}" th:aria-label="'View ' + ${vehicle.displayName}">
-        <img th:src="${vehicle.imagePath}"
-             th:srcset="${#strings.replace(vehicle.imagePath, 'hero.webp', 'hero-960.webp') + ' 960w, ' + vehicle.imagePath + ' 1672w'}"
+        <img th:src="@{${vehicle.imagePath}}"
+             th:srcset="@{${#strings.replace(vehicle.imagePath, 'hero.webp', 'hero-960.webp')}} + ' 960w, ' + @{${vehicle.imagePath}} + ' 1672w'"
              sizes="(max-width: 767px) 100vw, (max-width: 1199px) 50vw, 33vw"
              th:alt="${vehicle.displayName + ' in the APEX studio'}" width="1672" height="941" loading="lazy" decoding="async">
         <span class="vehicle-card__year" th:text="${vehicle.year}">2025</span>
