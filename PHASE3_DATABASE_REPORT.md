@@ -4,6 +4,10 @@ Verification dates: 21–22 October 2026 (Asia/Saigon).
 
 **Status: implementation delivered; Phase 3.1 acceptance remains incomplete until the real MySQL 8.4 integration suite passes.** H2 and default-profile success do not establish MySQL compatibility.
 
+Database naming update on 22 October 2026: the user selected `apex_motors`. The JDBC URL, Compose database/health check, MySQL integration-test database and documentation now use that name. This updates project configuration only; no existing database or data was renamed, deleted or migrated.
+
+Manual SQL update on 22 October 2026: at the user's request, the top-level `db/migration/V1__database_foundation.sql` is now a MySQL client script. It creates/selects `apex_motors`, sets session UTF8MB4/UTC, creates the seven tables with explicit InnoDB/UTF8MB4 options, and lists the result. It contains no DROP, automatic baseline, or table replacement. Original V1/V2 migration contents are preserved under `db/migration/managed/`; the application and safety test now scan only that directory. This preserves existing Flyway checksums and keeps the database-specific manual bootstrap out of H2 and automatic migrations. Manual setup does not create Flyway history; choosing the manual path and later adopting that database into Flyway are separate operations, as documented in README.
+
 ## Scope and repository safety
 
 - Actual checkout: `C:\Users\long5\Downloads\APPEX_MOTOR_PHASE2`.
@@ -19,8 +23,8 @@ Verification dates: 21–22 October 2026 (Asia/Saigon).
 ## Implemented features
 
 1. Spring Boot-managed JPA, MySQL Connector/J, Flyway Core and Flyway MySQL dependencies. H2 and Testcontainers are test-scoped. Java 21, Spring Boot 3.5.7 and every existing dependency/plugin are preserved.
-2. MySQL 8.4 Compose service for `demotesting`, authenticated health check, restart policy, persistent named volume, UTF8MB4/collation, UTC and configurable loopback-only host port.
-3. `.env.example` with placeholders, ignored local `.env` with independently generated random passwords, and secret-bearing file ignore rules. No real credentials are included in tracked source or this report.
+2. MySQL 8.4 Compose service for `apex_motors`, authenticated health check, restart policy, persistent named volume, UTF8MB4/collation, UTC and configurable loopback-only host port.
+3. `.env.example` with placeholders, ignored local `.env` with independently generated random passwords, and secret-bearing file ignore rules. The final publication review found literal datasource credentials in the previously published commit. The current tracked configuration now uses environment placeholders; existing workstation credentials were preserved in ignored `application-local.properties`, which the `mysql` profile optionally imports. The old password remains in Git history and must be rotated; history was not rewritten.
 4. Explicit `mysql` profile with DataSource, JPA, entity/repository scans, Flyway and `ddl-auto=validate`. Default and `dev` retain the database-free showroom. `dev,mysql` can combine both modes.
 5. Two versioned Flyway migrations; no automatic baseline, clean, Hibernate schema generation or destructive recovery logic.
 6. Seven JPA entities and seven repositories, lazy unidirectional associations, decimal monetary/specification values, enum strings, bean validation, UTC lifecycle timestamps, composite favorite identity and no cascading JPA removes.
@@ -78,16 +82,18 @@ These remain demonstration values from Phase 2. Versioned seeds are applied once
 ## Files created
 
 - `compose.yaml`, `.env.example`, this report, `.run/APEX MOTORS MySQL.run.xml`.
-- Local-only ignored `.env`; ignored `target/phase3-*` execution logs and packaged-startup check script.
+- Local-only ignored `.env` and `application-local.properties`; ignored `target/phase3-*` execution logs and packaged-startup check script.
 - `src/main/resources/application-mysql.properties`.
 - `src/main/resources/db/migration/V1__database_foundation.sql`.
 - `src/main/resources/db/migration/V2__seed_showroom_catalog.sql`.
+- `src/main/resources/db/migration/managed/V1__database_foundation.sql` and `V2__seed_showroom_catalog.sql`: original, unchanged automatic migrations.
 - `src/main/java/com/apexmotors/persistence/config/MySqlPersistenceConfig.java`.
 - `persistence/entity/`: `AuditedEntity`, `RoleEntity`, `UserEntity`, `BrandEntity`, `VehicleEntity`, `VehicleImageEntity`, `AppointmentEntity`, `FavoriteEntity`, `FavoriteId`, `RoleName`, `AvailabilityStatus`, `ImageCategory`, `AppointmentStatus`.
 - `persistence/repository/`: `RoleJpaRepository`, `UserJpaRepository`, `BrandJpaRepository`, `VehicleJpaRepository`, `VehicleImageJpaRepository`, `AppointmentJpaRepository`, `FavoriteJpaRepository`.
 - `persistence/health/`: `DatabaseHealthVerifier`, `DatabaseStartupCheck`.
 - `src/test/java/com/apexmotors/persistence/`: `DatabaseContract`, `H2DatabaseTest`, `MySqlDatabaseIT`, `DefaultProfileIsolationTest`, `DevProfileIsolationTest`, `EntityValidationTest`, `FlywaySafetyTest`.
 - `src/test/resources/application-testdb.properties`, `src/test/resources/docker-java.properties`.
+- `src/test/java/com/apexmotors/persistence/MySqlManualSetupIT.java`: runs the manual scripts against an isolated MySQL server with no selected database; verifies schema, seeds, constraints, and preservation of data when V1 is rerun.
 
 ## Files modified
 
@@ -111,15 +117,18 @@ These remain demonstration values from Phase 2. Versioned seeds are applied once
 | Compose syntax/interpolation | **PASS:** `docker compose config --quiet`; localhost-only binding verified in source |
 | Persistent Compose service startup | **NOT EXECUTED:** no development container or persistent volume was created |
 | Real MySQL 8.4 migrations/repositories/server startup | **INCOMPLETE:** `mysql-it` was attempted but failed during container setup, before SQL migrations or integration test methods executed |
+| Manual SQL on real MySQL 8.0 | **PASS on 22 October:** `MySqlManualSetupIT` created `apex_motors` from an unselected connection, created all seven InnoDB/UTF8MB4 tables, applied the V2 seed, enforced FK/check constraints, and preserved existing rows on a refused V1 rerun; one test, zero failures/errors/skips |
+| Regression after manual/Flyway separation | **PASS on 22 October:** all 40 regular Java tests and JAR packaging passed; managed V1/V2 contents match the previously committed migrations |
+| Final publication check | **PASS on 22 October:** all 40 regular Java tests and executable JAR packaging passed again after moving workstation credentials to ignored local configuration; evidence: `target/phase3-prepush-verify.log` |
 | Final default Maven build | **PASS on 22 October:** `mvnw.cmd -B verify -DargLine=-Xmx512m` with `MAVEN_OPTS=-Xmx256m`; 40 tests, zero failures/errors/skips; executable JAR packaged; BUILD SUCCESS |
 | Source preservation | `git diff` confirmed existing application models/services/controllers/repositories/templates/static files/manifest and existing tests unchanged; wrapper SHA-256 unchanged |
-| Secrets / Git | `.env` is ignored; real credentials excluded from tracked artifacts; branch publication separately authorized by the user on 22 October 2026; unrelated local edits excluded |
+| Secrets / Git | `.env` and `application-local.properties` are ignored; literal datasource credentials removed from the current tracked configuration during publication review. The previous published commit still contains the old credential, so password rotation is required. Publication authorized by the user; unrelated local edits excluded |
 
-Real MySQL verification encountered two environment issues. First, Spring Boot's managed Testcontainers client used an obsolete Docker API default; the test-only `docker-java.properties` setting resolved that connection error. Docker then interrupted the `mysql:8.4` image pull (named pipe ended / image inspection HTTP 500). A subsequent CLI image download was interrupted. On 22 October the Docker Desktop Linux engine was unavailable (named pipe absent). No successful MySQL integration result is claimed.
+Real MySQL 8.4 verification encountered environment issues. First, Spring Boot's managed Testcontainers client used an obsolete Docker API default; the test-only `docker-java.properties` setting resolved that connection error. Docker then interrupted the `mysql:8.4` image pull (named pipe ended / image inspection HTTP 500), and the engine was temporarily unavailable. During the manual SQL update on 22 October, Docker was available again but MySQL 8.4 containers failed with `exec format error` before running SQL. Pulling `mysql:8.4` explicitly for `linux/amd64` completed, but even `/bin/sh` in that refreshed image failed with the same error. The separate manual script test passed on the available MySQL 8.0 image. This confirms the manual SQL path on 8.0, not the full application integration suite on 8.4. The user's existing `mysql-container` on port 3306 was not modified or used by these tests.
 
 A new test initially exposed Hibernate proxy internals during serialization. The entity annotations were fixed, and all 40 Java tests subsequently passed. Sandbox restrictions on Maven cache writes, Mockito attachment and Java loopback sockets required approved runs outside the sandbox. A later duplicate build failed from native memory exhaustion; the final retry bounds Maven to 256 MB and the test JVM to 512 MB.
 
-Useful local evidence (all under ignored `target/`): `phase3-tests.log` (26 existing tests), `phase3-full-verify.log` (40 tests and JAR packaging passed before Docker setup failed), `phase3-default-smoke-result.log`, `phase3-final-verify.log`, `surefire-reports/` and `failsafe-reports/`. The failed Failsafe setup report must not be mistaken for passing or skipped MySQL test coverage.
+Useful local evidence (all under ignored `target/`): `phase3-tests.log` (26 existing tests), `phase3-full-verify.log` (40 tests and JAR packaging passed before Docker setup failed), `phase3-default-smoke-result.log`, `phase3-final-verify.log`, `phase3-manual-sql-verify.log` (40 regular tests passed; MySQL 8.4 container setup failed), `phase3-manual-mysql80.log` (manual SQL on MySQL 8.0 passed), `surefire-reports/` and `failsafe-reports/`. Failed MySQL 8.4 setup reports must not be mistaken for passing or skipped test coverage.
 
 To finish the outstanding acceptance check on a host with sufficient free memory and Docker Desktop running:
 

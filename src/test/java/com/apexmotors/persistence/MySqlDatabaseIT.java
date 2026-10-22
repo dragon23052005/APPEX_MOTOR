@@ -28,7 +28,7 @@ class MySqlDatabaseIT extends DatabaseContract {
 
     @Container
     static final MySQLContainer<?> MYSQL = new MySQLContainer<>("mysql:8.4")
-        .withDatabaseName("demotesting")
+        .withDatabaseName("apex_motors")
         .withUsername("apex_test")
         .withPassword(UUID.randomUUID().toString())
         .withCommand("--character-set-server=utf8mb4", "--collation-server=utf8mb4_0900_ai_ci", "--default-time-zone=+00:00")

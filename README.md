@@ -22,7 +22,7 @@ Flyway is the schema authority. Hibernate uses `ddl-auto=validate`, Open Session
 | `appointments` | Required user and vehicle; UTC appointment time and audit timestamps; status only, no booking workflow |
 | `favorites` | Composite primary key `(user_id, vehicle_id)` and UTC creation time |
 
-`V1__database_foundation.sql` creates tables, foreign keys, checks and indexes. `V2__seed_showroom_catalog.sql` inserts two roles, eight brands, the eight current showroom vehicles and eight hero URL records. Prices are the existing demonstration EUR prices, not new quotations. Availability is `UNSPECIFIED` because the source catalog does not track inventory status. Brand descriptions remain null because none exist in the source. The Ferrari 24-image manifest remains authoritative and is not duplicated in MySQL. Existing presentation-only fields (powertrain, highlights, body style, etc.) remain intact in the in-memory catalog.
+The automatic Flyway migrations are in `src/main/resources/db/migration/managed/`. Their original contents/checksums are preserved. `V1__database_foundation.sql` creates tables, foreign keys, checks and indexes. `V2__seed_showroom_catalog.sql` inserts two roles, eight brands, the eight current showroom vehicles and eight hero URL records. Prices are the existing demonstration EUR prices, not new quotations. Availability is `UNSPECIFIED` because the source catalog does not track inventory status. Brand descriptions remain null because none exist in the source. The Ferrari 24-image manifest remains authoritative and is not duplicated in MySQL. Existing presentation-only fields (powertrain, highlights, body style, etc.) remain intact in the in-memory catalog.
 
 Versioned seed migrations run once under Flyway's history/locking mechanism; restarting does not overwrite local data. No user or administrator account is seeded. The foundation accepts encoded bcrypt hashes, rejects plaintext at entity validation, and deliberately supplies no password encoder or authentication API. All stored `DATETIME(6)` values represent UTC; future forms must convert users' local times at their boundary.
 
@@ -41,7 +41,7 @@ docker compose ps
 .\mvnw.cmd spring-boot:run '-Dspring-boot.run.profiles=mysql'
 ```
 
-Compose pins the MySQL 8.4 release line, creates `demotesting`, uses a project-scoped persistent `mysql_data` volume, restarts unless stopped, and checks an authenticated `SELECT 1`. MySQL inherits `utf8mb4` / `utf8mb4_0900_ai_ci`, InnoDB and UTC. The host port binds **only to `127.0.0.1`**, never all interfaces. The app uses the non-root account scoped to `demotesting`; local Flyway migrations require DDL privileges in that database. Production separation of migration/runtime privileges is a later deployment concern.
+Compose pins the MySQL 8.4 release line, creates `apex_motors`, uses a project-scoped persistent `mysql_data` volume, restarts unless stopped, and checks an authenticated `SELECT 1`. MySQL inherits `utf8mb4` / `utf8mb4_0900_ai_ci`, InnoDB and UTC. The host port binds **only to `127.0.0.1`**, never all interfaces. The app uses the non-root account scoped to `apex_motors`; local Flyway migrations require DDL privileges in that database. Production separation of migration/runtime privileges is a later deployment concern.
 
 | Variable | Meaning |
 |---|---|
@@ -54,10 +54,12 @@ Compose pins the MySQL 8.4 release line, creates `demotesting`, uses a project-s
 
 `.env`, `.env.*` (except the example), local application configuration files, `secrets/`, compressed SQL exports and dumps are ignored. Do not run `docker compose config` without `--quiet` in shared logs: resolved environment values can contain secrets.
 
-Connect from a client with host `127.0.0.1`, the configured port, database `demotesting`, and the application user's credentials from `.env`. In MySQL Workbench/IntelliJ Database, enter the password privately in the credential field. From the container, request an interactive password prompt:
+For an existing local MySQL installation with different credentials, put `spring.datasource.username` and `spring.datasource.password` in the ignored root file `application-local.properties`. The `mysql` profile imports this optional file after `.env`, preserving workstation overrides without storing passwords in tracked source. Keep this file private; omit it when you want the Compose credentials from `.env`. The previous published commit contained literal datasource credentials; they have been removed from the current tracked configuration, but remain in Git history. Rotate that password before relying on it again.
+
+Connect from a client with host `127.0.0.1`, the configured port, database `apex_motors`, and the application user's credentials from `.env`. In MySQL Workbench/IntelliJ Database, enter the password privately in the credential field. From the container, request an interactive password prompt:
 
 ```powershell
-docker compose exec mysql sh -c 'mysql -u "$MYSQL_USER" -p demotesting'
+docker compose exec mysql sh -c 'mysql -u "$MYSQL_USER" -p apex_motors'
 ```
 
 Stop while keeping the data:
@@ -67,6 +69,19 @@ docker compose stop mysql
 ```
 
 Do not remove volumes to fix a startup issue. Container initialization variables apply only to an empty data directory; changing `.env` does not rotate credentials in an existing database. Back up and deliberately manage existing users/credentials instead. Never point this development configuration at an unknown or production database.
+
+Changing the configured database name to `apex_motors` does not rename a database inside an existing volume. If a database has already been initialized under another name, preserve its data and prepare a reviewed migration/import into `apex_motors`, with the required application-user privileges, before switching the running application. Do not delete the volume to apply the name change.
+
+## Chạy SQL trực tiếp trong Workbench / IntelliJ Database
+
+1. Khởi động MySQL 8.0.16 trở lên rồi kết nối tới server bằng tài khoản có quyền tạo database và bảng. Script thủ công đã được chạy thử trên MySQL 8.0; cấu hình Docker của dự án vẫn dùng 8.4. Khi `apex_motors` chưa tồn tại, để trống ô database/schema trong cấu hình kết nối.
+2. Mở `src/main/resources/db/migration/V1__database_foundation.sql` (file ngay trong thư mục `migration`, không phải bản trong `managed`). Chạy **toàn bộ file** trên cùng một kết nối, với chế độ dừng khi gặp lỗi. Trong Workbench, dùng **Execute All or Selection** khi không chọn riêng đoạn nào; trong IntelliJ dùng **Run SQL Script** với data source MySQL.
+3. Script tạo `apex_motors` nếu chưa có, chọn database, đặt múi giờ UTC và tạo 7 bảng InnoDB/UTF8MB4 cùng khóa và index. Kết quả cuối liệt kê các bảng. Refresh **Schemas** trong Workbench hoặc **Synchronize** trong IntelliJ để thấy chúng.
+4. Nếu cần dữ liệu mẫu, chọn `apex_motors` rồi chạy `src/main/resources/db/migration/V2__seed_showroom_catalog.sql` **một lần**, trên cùng kết nối sau khi V1 thành công. V1 chỉ tạo cấu trúc; V2 thêm 2 vai trò, 8 hãng, 8 xe và 8 ảnh hero, không tạo tài khoản người dùng.
+
+V1 dành cho database mới/rỗng. Nếu báo **Table already exists**, dừng và kiểm tra dữ liệu hiện có; script không xóa hoặc sửa bảng để chạy lại. Chạy thiếu dòng `USE apex_motors` có thể gây lỗi **No database selected**. Mỗi kết nối nhập thời gian trực tiếp về sau cần đặt `SET SESSION time_zone = '+00:00'` và dùng giá trị UTC.
+
+Chọn một cách khởi tạo cho mỗi database: **chạy SQL thủ công** hoặc **Spring Boot/Flyway tự chạy**. Bản thủ công không tạo lịch sử Flyway. Vì vậy, nếu tạo bảng thủ công rồi khởi động profile `mysql` trên cùng database, Flyway sẽ từ chối schema chưa có lịch sử. Muốn dùng ngay profile `mysql`, hãy để Flyway tạo bảng trên một database rỗng. Việc tiếp nhận database đã tạo thủ công cần đối chiếu schema/dữ liệu và thiết lập baseline có chủ đích theo hướng dẫn bên dưới; ứng dụng không tự thực hiện việc này. Profile mặc định vẫn chạy showroom bình thường.
 
 ## Profiles, migrations and IntelliJ
 
@@ -87,7 +102,7 @@ On a **fresh** database, application startup applies V1 then V2 and validates al
 
 For an **existing nonempty database without Flyway history**, startup intentionally refuses to continue (`baseline-on-migrate=false`). Do not enable automatic baselining, run `clean`, change Hibernate to `update`, or alter unknown tables. First take a verified backup and inventory the schema/data. Prefer a separate fresh database for evaluation. An intentional adoption requires an owner-reviewed schema comparison and migration/import plan; only establish a baseline version after proving exactly which migrations are already represented, including seed state. This project does not perform that adoption automatically.
 
-After V1/V2 have run, never edit their checksums on an established database. Add a new versioned migration for future changes. Flyway clean is disabled. If a checksum mismatch appears, restore the original migration and investigate; do not blindly run repair. MySQL DDL can commit implicitly: a failed migration needs inspection and a reviewed recovery plan, not automatic table deletion or baselining.
+After the managed V1/V2 have run, never edit their checksums on an established database. Add a new versioned migration under `db/migration/managed/` for future changes. Flyway scans only that directory; the top-level client scripts are excluded. When changing the schema, keep the manual setup script consistent with the resulting managed schema. Flyway clean is disabled. If a checksum mismatch appears, restore the original migration and investigate; do not blindly run repair. MySQL DDL can commit implicitly: a failed migration needs inspection and a reviewed recovery plan, not automatic table deletion or baselining.
 
 Troubleshooting:
 
@@ -111,7 +126,15 @@ Troubleshooting:
 node --test tools/vehicle-gallery.test.cjs
 ```
 
-H2 is test-scoped, runs the same SQL in MySQL compatibility mode, and still uses `ddl-auto=validate`. It checks isolated application behavior; it is **not** proof of MySQL compatibility. The opt-in Maven `mysql-it` profile runs `MySqlDatabaseIT` through Failsafe and fails when Docker is unavailable. It uses random test credentials, a fresh ephemeral database, and loopback-only MySQL port binding; it does not connect to `.env`'s database or reuse/delete development volumes. Tests cover exact catalog seeds, decimal values, lazy associations, UTC audit fields, unique/foreign/check constraints, restricted/cascading deletion, migration re-entry, password serialization, profile isolation and Ferrari rendering.
+H2 is test-scoped, runs the same managed migrations in MySQL compatibility mode, and still uses `ddl-auto=validate`. It checks isolated application behavior; it is **not** proof of MySQL compatibility. The opt-in Maven `mysql-it` profile runs `MySqlDatabaseIT` and `MySqlManualSetupIT` through Failsafe and fails when Docker is unavailable. They use random test credentials, fresh ephemeral databases, and loopback-only MySQL port binding; they do not connect to `.env`'s database or reuse/delete development volumes. Tests cover exact catalog seeds, decimal values, lazy associations, UTC audit fields, unique/foreign/check constraints, restricted/cascading deletion, migration re-entry, password serialization, profile isolation and Ferrari rendering. The manual setup check starts with no selected database, executes the actual client scripts, verifies all seven tables and seeds, and verifies that rerunning V1 fails without overwriting data.
+
+To check only the manual script on MySQL 8.0 (the locally verified client path), run:
+
+```powershell
+.\mvnw.cmd -Pmysql-it '-Dit.test=MySqlManualSetupIT' '-Dapex.mysql.manual-test-image=mysql:8.0' test-compile failsafe:integration-test failsafe:verify
+```
+
+This check does not replace the full MySQL 8.4 application integration suite.
 
 Implementation and verification status: [PHASE3_DATABASE_REPORT.md](PHASE3_DATABASE_REPORT.md).
 
