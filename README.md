@@ -1,15 +1,128 @@
-# APEX MOTORS — Phase 2 Cinematic Showroom
+# APEX MOTORS — Phase 3.1 Database Foundation
 
 APEX MOTORS is a server-rendered luxury automotive showroom built with Java 21, Spring Boot, Spring MVC, Thymeleaf, Bootstrap and GSAP. Phase 2 preserves the Phase 1 routes and backend architecture while replacing the previous real-time 3D experiment with a cinematic presentation and a reusable image-sequence 360° viewer.
 
-There is no database, authentication, React, Node.js application runtime, Three.js, WebGL, Blender asset or GLB/GLTF model in this phase.
+Phase 3.1 adds an opt-in MySQL 8.4 persistence foundation. The default and `dev` profiles still run the complete Phase 2 showroom without a database. Authentication and booking workflows are not implemented.
+
+## Phase 3.1 architecture
+
+The existing `VehicleRepository` / `InMemoryVehicleRepository` and `JsonVehicleGalleryRepository` continue serving every page in **all profiles**, including `mysql`. No route, template, animation, Ferrari manifest, original PNG or image URL is changed by this phase. The database is prepared for a later, separately reviewed application adapter.
+
+`com.apexmotors.persistence` contains independent JPA entities, seven Spring Data repositories, profile configuration and an internal startup verifier. The `mysql` profile enables DataSource, Flyway, entity scanning and repository scanning. A conditional `!mysql` configuration document excludes database auto-configuration only when MySQL is not requested; there are no global exclusions on the application class. `dev,mysql` is supported.
+
+Flyway is the schema authority. Hibernate uses `ddl-auto=validate`, Open Session in View is disabled, and SQL initialization is disabled. Relationships are lazy and unidirectional, with no cascading JPA deletes. Repositories provide transaction boundaries for individual operations; future multi-repository workflows must use service-level `@Transactional`. Controllers continue using the existing view models, not JPA entities. Password hashes and entity relationships are excluded from JSON serialization.
+
+| Table | Purpose and relationships |
+|---|---|
+| `roles` | Unique `ADMIN` / `CUSTOMER` roles |
+| `users` | Unique email, encoded password hash, required role, UTC audit timestamps |
+| `brands` | Unique slug; referenced by vehicles |
+| `vehicles` | Unique slug, brand, decimal price/performance, optional unknown specifications, UTC audit timestamps |
+| `vehicle_images` | URL metadata, category/order/primary flag; unique vehicle+URL and vehicle+order |
+| `appointments` | Required user and vehicle; UTC appointment time and audit timestamps; status only, no booking workflow |
+| `favorites` | Composite primary key `(user_id, vehicle_id)` and UTC creation time |
+
+`V1__database_foundation.sql` creates tables, foreign keys, checks and indexes. `V2__seed_showroom_catalog.sql` inserts two roles, eight brands, the eight current showroom vehicles and eight hero URL records. Prices are the existing demonstration EUR prices, not new quotations. Availability is `UNSPECIFIED` because the source catalog does not track inventory status. Brand descriptions remain null because none exist in the source. The Ferrari 24-image manifest remains authoritative and is not duplicated in MySQL. Existing presentation-only fields (powertrain, highlights, body style, etc.) remain intact in the in-memory catalog.
+
+Versioned seed migrations run once under Flyway's history/locking mechanism; restarting does not overwrite local data. No user or administrator account is seeded. The foundation accepts encoded bcrypt hashes, rejects plaintext at entity validation, and deliberately supplies no password encoder or authentication API. All stored `DATETIME(6)` values represent UTC; future forms must convert users' local times at their boundary.
+
+## Local MySQL with Docker
+
+Default showroom development does **not** require these steps. For database development, install/start Docker Desktop with Linux containers and use a free local port.
+
+1. Copy `.env.example` to `.env` if it does not already exist. Replace **both** password placeholders with different random secrets. An existing `.env` must be preserved. This implementation may already have generated a local `.env`; its values are intentionally not printed in reports.
+2. Keep values unquoted and simple. Compose reads `.env` automatically; the `mysql` Spring profile imports it as a properties file relative to the project working directory. Long random hexadecimal passwords work in both parsers. For arbitrary passwords containing escapes, quotes or interpolation characters, supply environment variables instead.
+3. Validate and start:
+
+```powershell
+docker compose config --quiet
+docker compose up -d --wait mysql
+docker compose ps
+.\mvnw.cmd spring-boot:run '-Dspring-boot.run.profiles=mysql'
+```
+
+Compose pins the MySQL 8.4 release line, creates `demotesting`, uses a project-scoped persistent `mysql_data` volume, restarts unless stopped, and checks an authenticated `SELECT 1`. MySQL inherits `utf8mb4` / `utf8mb4_0900_ai_ci`, InnoDB and UTC. The host port binds **only to `127.0.0.1`**, never all interfaces. The app uses the non-root account scoped to `demotesting`; local Flyway migrations require DDL privileges in that database. Production separation of migration/runtime privileges is a later deployment concern.
+
+| Variable | Meaning |
+|---|---|
+| `MYSQL_PORT` | Host port, default `3306`; choose another free port if necessary |
+| `MYSQL_USER` | Non-root application/database migration user; example `apex_app` |
+| `MYSQL_PASSWORD` | Application user's local secret; required |
+| `MYSQL_ROOT_PASSWORD` | Container initialization secret; not used by Spring |
+| `DB_HOST` | JDBC host, default `127.0.0.1` |
+| `MYSQL_SSL_MODE` | Connector/J TLS mode, default `PREFERRED` for local development |
+
+`.env`, `.env.*` (except the example), local application configuration files, `secrets/`, compressed SQL exports and dumps are ignored. Do not run `docker compose config` without `--quiet` in shared logs: resolved environment values can contain secrets.
+
+Connect from a client with host `127.0.0.1`, the configured port, database `demotesting`, and the application user's credentials from `.env`. In MySQL Workbench/IntelliJ Database, enter the password privately in the credential field. From the container, request an interactive password prompt:
+
+```powershell
+docker compose exec mysql sh -c 'mysql -u "$MYSQL_USER" -p demotesting'
+```
+
+Stop while keeping the data:
+
+```powershell
+docker compose stop mysql
+```
+
+Do not remove volumes to fix a startup issue. Container initialization variables apply only to an empty data directory; changing `.env` does not rotate credentials in an existing database. Back up and deliberately manage existing users/credentials instead. Never point this development configuration at an unknown or production database.
+
+## Profiles, migrations and IntelliJ
+
+```powershell
+# Existing showroom: no MySQL required
+.\mvnw.cmd spring-boot:run
+# Existing IntelliJ development mode: also no MySQL required
+.\mvnw.cmd spring-boot:run '-Dspring-boot.run.profiles=dev'
+# Persistence plus development template reloads
+.\mvnw.cmd spring-boot:run '-Dspring-boot.run.profiles=dev,mysql'
+# Packaged application (run from the project directory to read .env)
+java -jar target/apex-motors-0.0.1-SNAPSHOT.jar --spring.profiles.active=mysql
+```
+
+In IntelliJ, keep Project SDK and Maven Runner on Java 21 and reload Maven. The existing **APEX MOTORS** shared configuration stays database-free. Use the added **APEX MOTORS MySQL** configuration after starting Compose, or duplicate the existing Maven configuration and set `-Dspring-boot.run.profiles=dev,mysql`. Keep the working directory at `$PROJECT_DIR$` so `.env` resolves. No credentials are stored in shared run configurations. Alternatively run `ApexMotorsApplication` with active profile `mysql` and the same working directory/environment.
+
+On a **fresh** database, application startup applies V1 then V2 and validates all entity mappings. A private startup check verifies `SELECT 1`, current Flyway migrations/history and all seven tables. Its success log contains no credentials; it is not an HTTP endpoint.
+
+For an **existing nonempty database without Flyway history**, startup intentionally refuses to continue (`baseline-on-migrate=false`). Do not enable automatic baselining, run `clean`, change Hibernate to `update`, or alter unknown tables. First take a verified backup and inventory the schema/data. Prefer a separate fresh database for evaluation. An intentional adoption requires an owner-reviewed schema comparison and migration/import plan; only establish a baseline version after proving exactly which migrations are already represented, including seed state. This project does not perform that adoption automatically.
+
+After V1/V2 have run, never edit their checksums on an established database. Add a new versioned migration for future changes. Flyway clean is disabled. If a checksum mismatch appears, restore the original migration and investigate; do not blindly run repair. MySQL DDL can commit implicitly: a failed migration needs inspection and a reviewed recovery plan, not automatic table deletion or baselining.
+
+Troubleshooting:
+
+- **Connection refused / timeout:** verify Docker Desktop is running, Compose reports healthy, the `.env` port is free and `DB_HOST` is correct.
+- **Access denied:** verify `.env` matches the credentials used when the persistent volume was first initialized. Do not delete the volume.
+- **Missing `MYSQL_USER` / `MYSQL_PASSWORD`:** check the working directory and environment. Spring imports `.env` only for `mysql`; environment variables can override the file.
+- **Port already allocated:** change `MYSQL_PORT` in `.env`, then recreate only the Compose service with `docker compose up -d --wait mysql`; preserve the volume.
+- **Nonempty schema / checksum / validation error:** stop and inspect migration history and schema. Do not use destructive recovery shortcuts.
+- **Docker unavailable:** the default profile and H2 tests still work. Real MySQL acceptance remains unverified until `mysql-it` passes on a Docker-capable host.
+- **Java native memory allocation failure:** free memory used by other development workloads and run Maven with `$env:MAVEN_OPTS='-Xmx256m'` and `.\mvnw.cmd verify '-DargLine=-Xmx512m'`. Add `-Pmysql-it` only when Docker is running and sufficient memory is available for MySQL too.
+- **Testcontainers reports Docker API 400 / client too old:** the test-only `docker-java.properties` selects API 1.44 for Spring Boot's managed Docker client. Use a Docker engine supporting API 1.44 or newer. This follows the client's documented [API version setting](https://github.com/docker-java/docker-java/blob/main/docs/getting_started.md); application dependency versions remain managed by Spring Boot.
+
+## Phase 3.1 tests
+
+```powershell
+# Compile, all existing regressions, entity validation, H2 migration/repository checks, package
+.\mvnw.cmd verify
+# Additionally use a fresh real MySQL 8.4 Testcontainers instance (Docker required)
+.\mvnw.cmd verify -Pmysql-it
+# Existing gallery browser-state tests
+node --test tools/vehicle-gallery.test.cjs
+```
+
+H2 is test-scoped, runs the same SQL in MySQL compatibility mode, and still uses `ddl-auto=validate`. It checks isolated application behavior; it is **not** proof of MySQL compatibility. The opt-in Maven `mysql-it` profile runs `MySqlDatabaseIT` through Failsafe and fails when Docker is unavailable. It uses random test credentials, a fresh ephemeral database, and loopback-only MySQL port binding; it does not connect to `.env`'s database or reuse/delete development volumes. Tests cover exact catalog seeds, decimal values, lazy associations, UTC audit fields, unique/foreign/check constraints, restricted/cascading deletion, migration re-entry, password serialization, profile isolation and Ferrari rendering.
+
+Implementation and verification status: [PHASE3_DATABASE_REPORT.md](PHASE3_DATABASE_REPORT.md).
 
 ## Start on another computer
 
-Clone **the `phase-2-cinematic-showroom` branch** (the latest fixes are not automatically merged into `main`):
+The Phase 3.1 implementation is on `phase-3-database-foundation`. It includes the existing Phase 2 showroom and keeps MySQL optional. Real MySQL verification remains incomplete as detailed in the implementation report.
+
+Clone **the `phase-3-database-foundation` branch** (these changes are not automatically merged into `main`):
 
 ```shell
-git clone --branch phase-2-cinematic-showroom --single-branch https://github.com/dragon23052005/APPEX_MOTOR.git APEX-MOTORS
+git clone --branch phase-3-database-foundation --single-branch https://github.com/dragon23052005/APPEX_MOTOR.git APEX-MOTORS
 ```
 
 Alternatively, select that branch on GitHub before choosing **Code → Download ZIP**, then extract the complete ZIP.
@@ -190,7 +303,7 @@ On 15 October 2026, the staged project was exported to a new Windows folder with
 - Current vehicle specifications, prices and inventory are demonstration data, not sales quotations.
 - Current per-vehicle and shared studio photographs are WebP assets generated for this project, with 960-pixel responsive variants for mobile and card layouts. Future AVIF media can be added through the documented `assets/cars` structure.
 - Vehicle hero URLs (including both `srcset` variants and detail-page posters) use [Spring MVC content versioning](https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-config/static-resources.html). Replacing a hero image and restarting the application produces a new URL, bypassing older cached responses while retaining the 30-day image cache. Original unversioned asset URLs remain available. If an already-open page shows broken images, reload it with Ctrl+F5; in IntelliJ, rebuild/restart the correct checkout first if resource changes have not been copied to `target/classes`.
-- Database persistence, authentication, paint configuration, door animation, engine audio and driving simulation remain out of scope.
+- Database-backed page rendering, authentication, paint configuration, door animation, engine audio and driving simulation remain out of scope. Phase 3.1 only adds the opt-in persistence foundation described above.
 
 ## Ferrari multi-angle gallery
 

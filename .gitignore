@@ -5,3 +5,14 @@ target/
 .vscode/
 *.iml
 .idea/
+
+# Local credentials and database exports
+.env
+.env.*
+!.env.example
+application-local.properties
+application-local.yml
+application-local.yaml
+*.sql.gz
+*.dump
+secrets/
