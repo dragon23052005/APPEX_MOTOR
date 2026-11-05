@@ -1,8 +1,8 @@
-# APEX MOTORS — Phase 3.1 Database Foundation
+# APEX MOTORS — Phase 3.2 Authentication & Authorization
 
 APEX MOTORS is a server-rendered luxury automotive showroom built with Java 21, Spring Boot, Spring MVC, Thymeleaf, Bootstrap and GSAP. Phase 2 preserves the Phase 1 routes and backend architecture while replacing the previous real-time 3D experiment with a cinematic presentation and a reusable image-sequence 360° viewer.
 
-Phase 3.1 adds an opt-in MySQL 8.4 persistence foundation. The default and `dev` profiles still run the complete Phase 2 showroom without a database. Authentication and booking workflows are not implemented.
+Phase 3.2 adds database-backed customer registration, sign-in, profile editing and password changes to the Phase 3.1 persistence foundation. Account features are enabled only with the `mysql` profile. The default and `dev` profiles still run the complete showroom without a database. Booking workflows and the administrator interface remain reserved for later phases.
 
 ## Phase 3.1 architecture
 
@@ -22,9 +22,68 @@ Flyway is the schema authority. Hibernate uses `ddl-auto=validate`, Open Session
 | `appointments` | Required user and vehicle; UTC appointment time and audit timestamps; status only, no booking workflow |
 | `favorites` | Composite primary key `(user_id, vehicle_id)` and UTC creation time |
 
-`V1__database_foundation.sql` creates tables, foreign keys, checks and indexes. `V2__seed_showroom_catalog.sql` inserts two roles, eight brands, the eight current showroom vehicles and eight hero URL records. Prices are the existing demonstration EUR prices, not new quotations. Availability is `UNSPECIFIED` because the source catalog does not track inventory status. Brand descriptions remain null because none exist in the source. The Ferrari 24-image manifest remains authoritative and is not duplicated in MySQL. Existing presentation-only fields (powertrain, highlights, body style, etc.) remain intact in the in-memory catalog.
+The automatic Flyway migrations are in `src/main/resources/db/migration/managed/`. Their original contents/checksums are preserved. `V1__database_foundation.sql` creates tables, foreign keys, checks and indexes. `V2__seed_showroom_catalog.sql` inserts two roles, eight brands, the eight current showroom vehicles and eight hero URL records. Prices are the existing demonstration EUR prices, not new quotations. Availability is `UNSPECIFIED` because the source catalog does not track inventory status. Brand descriptions remain null because none exist in the source. The Ferrari 24-image manifest remains authoritative and is not duplicated in MySQL. Existing presentation-only fields (powertrain, highlights, body style, etc.) remain intact in the in-memory catalog.
 
-Versioned seed migrations run once under Flyway's history/locking mechanism; restarting does not overwrite local data. No user or administrator account is seeded. The foundation accepts encoded bcrypt hashes, rejects plaintext at entity validation, and deliberately supplies no password encoder or authentication API. All stored `DATETIME(6)` values represent UTC; future forms must convert users' local times at their boundary.
+Versioned seed migrations run once under Flyway's history/locking mechanism; restarting does not overwrite local data. No user or administrator account is seeded. Phase 3.2 uses BCrypt to create password hashes and the existing entity validation still rejects plaintext hashes. All stored `DATETIME(6)` values represent UTC; future forms must convert users' local times at their boundary.
+
+## Phase 3.2 accounts
+
+`com.apexmotors.auth` contains Spring Security configuration, a database-backed `UserDetailsService`, transactional account services, form DTOs, controllers and session invalidation. Spring Boot manages the Spring Security 6 dependency versions. Authentication uses an HTTP session, not JWTs or browser storage. Existing `users` and `roles` tables are reused; no new migration or authentication table is required, and managed V1/V2 remain unchanged.
+
+| Route | Access and behavior with `mysql` active |
+|---|---|
+| `GET /login`, `POST /login` | Public sign-in; Spring Security processes the POST using email/password |
+| `GET /register`, `POST /register` | Public registration; new accounts always receive CUSTOMER |
+| `POST /logout` | CSRF-protected sign-out; invalidates the current session |
+| `GET /profile` | CUSTOMER or ADMIN; shows only the signed-in account's public profile fields |
+| `POST /profile` | Updates the signed-in user's full name and optional phone only |
+| `POST /profile/password` | Requires the current password, validates the new password and signs out all registered sessions after commit |
+| `/admin`, `/admin/**` | ADMIN only; no administrator pages or operations exist yet, so authorized requests currently return 404 |
+| `/appointments/**`, `/favorites/**` | Reserved for CUSTOMER/ADMIN; workflows are not implemented |
+| `/access-denied` | A branded 403 page, also used for invalid/expired CSRF submissions |
+| Existing showroom routes and assets | Public, including Ferrari gallery content |
+
+Without `mysql`, the account navigation link is hidden and account/reserved routes return a friendly 503 page. Database and Spring Security auto-configuration are excluded only in this database-free mode. Existing public enquiry submissions remain demonstrations; with `mysql` active, they also require CSRF tokens supplied by Thymeleaf.
+
+### Run and use accounts locally
+
+1. Use JDK 21. Start MySQL and configure `DB_HOST`, `MYSQL_PORT`, `MYSQL_USER` and `MYSQL_PASSWORD` in your private `.env`, or use the ignored `application-local.properties` for an existing installation. Do not copy passwords into tracked source.
+2. Ensure `apex_motors` is empty or already managed by the unchanged Flyway V1/V2 migrations. If you previously ran the manual SQL client scripts, follow the existing-schema instructions below; do not enable automatic baselining or delete data to work around missing history.
+3. Run `.\mvnw.cmd spring-boot:run '-Dspring-boot.run.profiles=mysql'` (or `dev,mysql`). Open `/register`, create a customer account, then sign in at `/login`. No default account exists.
+4. Edit your name/phone at `/profile`. Email and role are displayed but cannot be changed through the public forms. Changing your password requires the old password and signs out the current browser and other sessions on their next request.
+
+The Compose target remains MySQL 8.4. If an existing MySQL instance already occupies port 3306, use it with the appropriate private configuration, or choose a different `MYSQL_PORT` for Compose. Do not stop or replace an unrelated database container to start this project.
+
+If `/login` displays “The showroom is yours to explore” and “Account services are not available”, the application is running without the `mysql` profile. Starting MySQL alone does not enable accounts. Stop the current application and select **APEX MOTORS MySQL** in IntelliJ's Run dropdown; this shared configuration activates `dev,mysql`. For a direct `ApexMotorsApplication` run, set program arguments to `--spring.profiles.active=mysql`. After restarting, open `http://localhost:8080/login`; the startup log must list `mysql` as an active profile. Keep the working directory at the project root so private database configuration is loaded.
+
+### Security decisions
+
+- Passwords require 12–64 characters, uppercase/lowercase letters and a number, and at most 72 UTF-8 bytes. They are hashed with BCrypt cost 12. Oversized login input is rejected without truncation or an error page. Passwords are never repopulated in HTML.
+- Email is trimmed and lowercased. Duplicate detection has both a user-friendly precheck and the database unique constraint for concurrent requests. Login errors use the same message for an unknown account, wrong password and disabled account.
+- Form binding explicitly allows only the documented fields. Client-supplied account IDs, roles, enabled flags, email changes and hashes cannot update another account or elevate privileges. Service writes are transactional and profile/password changes lock the account row.
+- Spring Security provides session fixation protection, CSRF and POST logout. Sessions use HttpOnly, SameSite=Lax cookies, cookie-only tracking and a 30-minute idle timeout. For an HTTPS deployment, set `SESSION_COOKIE_SECURE=true`; configure TLS and trusted proxy handling at deployment time.
+- Login restores a saved private GET path. Only a local allowlisted path is used; query strings, `next`/`redirect` parameters and saved URL hostnames are not used as destinations. `server.tomcat.use-relative-redirects=true` also keeps the servlet container from expanding these paths using the request's Host header.
+- Changing a password expires all of that account's sessions after the database transaction commits. The session registry is in memory and applies to a single application instance; distributed deployment needs shared sessions/invalidation. Role changes made by an operator require sign-out/sign-in to refresh authorities.
+- The existing public showroom remains public. New protected route families in future phases must be explicitly added to the authorization rules; do not assume new routes are automatically private.
+- No remember-me cookie, email verification, password recovery or login/registration rate limiting is included. Add abuse controls and account recovery before an internet-facing production release. This phase does not claim production deployment readiness.
+
+### Explicit initial ADMIN setup
+
+Register the intended owner's account normally first. A trusted database operator can then use a private copy of `tools/promote_admin.sql`: connect to the intended database, set its initially empty `@apex_admin_email` to the verified account's email, and execute it deliberately. Confirm the reported account and role, then sign out and sign in again. The empty script is a no-op; it creates no account or password, and neither Flyway nor application startup invokes it. Do not expose this procedure through a public endpoint or commit a filled-in local copy. `/admin/**` remains reserved for Phase 3.3.
+
+### Account verification
+
+```powershell
+# Unit, H2 account/security contracts, profile isolation, showroom regressions and packaging
+.\mvnw.cmd verify
+# All integration suites on the default MySQL 8.4 image; requires Docker
+.\mvnw.cmd verify -Pmysql-it
+# Same integration suites using a locally available MySQL release
+.\mvnw.cmd verify -Pmysql-it '-Dapex.mysql.test-image=mysql:8.0.36'
+node --test tools/vehicle-gallery.test.cjs
+```
+
+The image override changes only the isolated test containers, not application/Compose configuration. Results from MySQL 8.0.36 do not establish MySQL 8.4 compatibility. Tests never use the development database or its Docker volumes. `MySqlAuthenticationIT` runs the same 37 authentication scenarios as H2, including a real HTTP flow with cookies, rendered CSRF tokens and two concurrent sessions. Failsafe reports MySQL setup errors as failures instead of silently skipping them. See [PHASE3_AUTHENTICATION_REPORT.md](PHASE3_AUTHENTICATION_REPORT.md) for executed checks and remaining limitations.
 
 ## Local MySQL with Docker
 
@@ -41,7 +100,7 @@ docker compose ps
 .\mvnw.cmd spring-boot:run '-Dspring-boot.run.profiles=mysql'
 ```
 
-Compose pins the MySQL 8.4 release line, creates `demotesting`, uses a project-scoped persistent `mysql_data` volume, restarts unless stopped, and checks an authenticated `SELECT 1`. MySQL inherits `utf8mb4` / `utf8mb4_0900_ai_ci`, InnoDB and UTC. The host port binds **only to `127.0.0.1`**, never all interfaces. The app uses the non-root account scoped to `demotesting`; local Flyway migrations require DDL privileges in that database. Production separation of migration/runtime privileges is a later deployment concern.
+Compose pins the MySQL 8.4 release line, creates `apex_motors`, uses a project-scoped persistent `mysql_data` volume, restarts unless stopped, and checks an authenticated `SELECT 1`. MySQL inherits `utf8mb4` / `utf8mb4_0900_ai_ci`, InnoDB and UTC. The host port binds **only to `127.0.0.1`**, never all interfaces. The app uses the non-root account scoped to `apex_motors`; local Flyway migrations require DDL privileges in that database. Production separation of migration/runtime privileges is a later deployment concern.
 
 | Variable | Meaning |
 |---|---|
@@ -54,10 +113,12 @@ Compose pins the MySQL 8.4 release line, creates `demotesting`, uses a project-s
 
 `.env`, `.env.*` (except the example), local application configuration files, `secrets/`, compressed SQL exports and dumps are ignored. Do not run `docker compose config` without `--quiet` in shared logs: resolved environment values can contain secrets.
 
-Connect from a client with host `127.0.0.1`, the configured port, database `demotesting`, and the application user's credentials from `.env`. In MySQL Workbench/IntelliJ Database, enter the password privately in the credential field. From the container, request an interactive password prompt:
+For an existing local MySQL installation with different credentials, put `spring.datasource.username` and `spring.datasource.password` in the ignored root file `application-local.properties`. The `mysql` profile imports this optional file after `.env`, preserving workstation overrides without storing passwords in tracked source. Keep this file private; omit it when you want the Compose credentials from `.env`. The previous published commit contained literal datasource credentials; they have been removed from the current tracked configuration, but remain in Git history. Rotate that password before relying on it again.
+
+Connect from a client with host `127.0.0.1`, the configured port, database `apex_motors`, and the application user's credentials from `.env`. In MySQL Workbench/IntelliJ Database, enter the password privately in the credential field. From the container, request an interactive password prompt:
 
 ```powershell
-docker compose exec mysql sh -c 'mysql -u "$MYSQL_USER" -p demotesting'
+docker compose exec mysql sh -c 'mysql -u "$MYSQL_USER" -p apex_motors'
 ```
 
 Stop while keeping the data:
@@ -67,6 +128,19 @@ docker compose stop mysql
 ```
 
 Do not remove volumes to fix a startup issue. Container initialization variables apply only to an empty data directory; changing `.env` does not rotate credentials in an existing database. Back up and deliberately manage existing users/credentials instead. Never point this development configuration at an unknown or production database.
+
+Changing the configured database name to `apex_motors` does not rename a database inside an existing volume. If a database has already been initialized under another name, preserve its data and prepare a reviewed migration/import into `apex_motors`, with the required application-user privileges, before switching the running application. Do not delete the volume to apply the name change.
+
+## Chạy SQL trực tiếp trong Workbench / IntelliJ Database
+
+1. Khởi động MySQL 8.0.16 trở lên rồi kết nối tới server bằng tài khoản có quyền tạo database và bảng. Script thủ công đã được chạy thử trên MySQL 8.0; cấu hình Docker của dự án vẫn dùng 8.4. Khi `apex_motors` chưa tồn tại, để trống ô database/schema trong cấu hình kết nối.
+2. Mở `src/main/resources/db/migration/V1__database_foundation.sql` (file ngay trong thư mục `migration`, không phải bản trong `managed`). Chạy **toàn bộ file** trên cùng một kết nối, với chế độ dừng khi gặp lỗi. Trong Workbench, dùng **Execute All or Selection** khi không chọn riêng đoạn nào; trong IntelliJ dùng **Run SQL Script** với data source MySQL.
+3. Script tạo `apex_motors` nếu chưa có, chọn database, đặt múi giờ UTC và tạo 7 bảng InnoDB/UTF8MB4 cùng khóa và index. Kết quả cuối liệt kê các bảng. Refresh **Schemas** trong Workbench hoặc **Synchronize** trong IntelliJ để thấy chúng.
+4. Nếu cần dữ liệu mẫu, chọn `apex_motors` rồi chạy `src/main/resources/db/migration/V2__seed_showroom_catalog.sql` **một lần**, trên cùng kết nối sau khi V1 thành công. V1 chỉ tạo cấu trúc; V2 thêm 2 vai trò, 8 hãng, 8 xe và 8 ảnh hero, không tạo tài khoản người dùng.
+
+V1 dành cho database mới/rỗng. Nếu báo **Table already exists**, dừng và kiểm tra dữ liệu hiện có; script không xóa hoặc sửa bảng để chạy lại. Chạy thiếu dòng `USE apex_motors` có thể gây lỗi **No database selected**. Mỗi kết nối nhập thời gian trực tiếp về sau cần đặt `SET SESSION time_zone = '+00:00'` và dùng giá trị UTC.
+
+Chọn một cách khởi tạo cho mỗi database: **chạy SQL thủ công** hoặc **Spring Boot/Flyway tự chạy**. Bản thủ công không tạo lịch sử Flyway. Vì vậy, nếu tạo bảng thủ công rồi khởi động profile `mysql` trên cùng database, Flyway sẽ từ chối schema chưa có lịch sử. Muốn dùng ngay profile `mysql`, hãy để Flyway tạo bảng trên một database rỗng. Việc tiếp nhận database đã tạo thủ công cần đối chiếu schema/dữ liệu và thiết lập baseline có chủ đích theo hướng dẫn bên dưới; ứng dụng không tự thực hiện việc này. Profile mặc định vẫn chạy showroom bình thường.
 
 ## Profiles, migrations and IntelliJ
 
@@ -87,7 +161,7 @@ On a **fresh** database, application startup applies V1 then V2 and validates al
 
 For an **existing nonempty database without Flyway history**, startup intentionally refuses to continue (`baseline-on-migrate=false`). Do not enable automatic baselining, run `clean`, change Hibernate to `update`, or alter unknown tables. First take a verified backup and inventory the schema/data. Prefer a separate fresh database for evaluation. An intentional adoption requires an owner-reviewed schema comparison and migration/import plan; only establish a baseline version after proving exactly which migrations are already represented, including seed state. This project does not perform that adoption automatically.
 
-After V1/V2 have run, never edit their checksums on an established database. Add a new versioned migration for future changes. Flyway clean is disabled. If a checksum mismatch appears, restore the original migration and investigate; do not blindly run repair. MySQL DDL can commit implicitly: a failed migration needs inspection and a reviewed recovery plan, not automatic table deletion or baselining.
+After the managed V1/V2 have run, never edit their checksums on an established database. Add a new versioned migration under `db/migration/managed/` for future changes. Flyway scans only that directory; the top-level client scripts are excluded. When changing the schema, keep the manual setup script consistent with the resulting managed schema. Flyway clean is disabled. If a checksum mismatch appears, restore the original migration and investigate; do not blindly run repair. MySQL DDL can commit implicitly: a failed migration needs inspection and a reviewed recovery plan, not automatic table deletion or baselining.
 
 Troubleshooting:
 
@@ -111,18 +185,26 @@ Troubleshooting:
 node --test tools/vehicle-gallery.test.cjs
 ```
 
-H2 is test-scoped, runs the same SQL in MySQL compatibility mode, and still uses `ddl-auto=validate`. It checks isolated application behavior; it is **not** proof of MySQL compatibility. The opt-in Maven `mysql-it` profile runs `MySqlDatabaseIT` through Failsafe and fails when Docker is unavailable. It uses random test credentials, a fresh ephemeral database, and loopback-only MySQL port binding; it does not connect to `.env`'s database or reuse/delete development volumes. Tests cover exact catalog seeds, decimal values, lazy associations, UTC audit fields, unique/foreign/check constraints, restricted/cascading deletion, migration re-entry, password serialization, profile isolation and Ferrari rendering.
+H2 is test-scoped, runs the same managed migrations in MySQL compatibility mode, and still uses `ddl-auto=validate`. It checks isolated application behavior; it is **not** proof of MySQL compatibility. The opt-in Maven `mysql-it` profile runs `MySqlDatabaseIT` and `MySqlManualSetupIT` through Failsafe and fails when Docker is unavailable. They use random test credentials, fresh ephemeral databases, and loopback-only MySQL port binding; they do not connect to `.env`'s database or reuse/delete development volumes. Tests cover exact catalog seeds, decimal values, lazy associations, UTC audit fields, unique/foreign/check constraints, restricted/cascading deletion, migration re-entry, password serialization, profile isolation and Ferrari rendering. The manual setup check starts with no selected database, executes the actual client scripts, verifies all seven tables and seeds, and verifies that rerunning V1 fails without overwriting data.
+
+To check only the manual script on MySQL 8.0 (the locally verified client path), run:
+
+```powershell
+.\mvnw.cmd -Pmysql-it '-Dit.test=MySqlManualSetupIT' '-Dapex.mysql.manual-test-image=mysql:8.0' test-compile failsafe:integration-test failsafe:verify
+```
+
+This check does not replace the full MySQL 8.4 application integration suite.
 
 Implementation and verification status: [PHASE3_DATABASE_REPORT.md](PHASE3_DATABASE_REPORT.md).
 
 ## Start on another computer
 
-The Phase 3.1 implementation is on `phase-3-database-foundation`. It includes the existing Phase 2 showroom and keeps MySQL optional. Real MySQL verification remains incomplete as detailed in the implementation report.
+Phase 3.2 is developed on `phase-3-authentication`, starting from commit `8180e6d`. It includes the existing showroom and keeps MySQL optional. Publication of this branch is authorized; merging into `main` remains a separate action. Verification details are in `PHASE3_AUTHENTICATION_REPORT.md`.
 
-Clone **the `phase-3-database-foundation` branch** (these changes are not automatically merged into `main`):
+Clone **the `phase-3-authentication` branch** (these changes are not automatically merged into `main`):
 
 ```shell
-git clone --branch phase-3-database-foundation --single-branch https://github.com/dragon23052005/APPEX_MOTOR.git APEX-MOTORS
+git clone --branch phase-3-authentication --single-branch https://github.com/dragon23052005/APPEX_MOTOR.git APEX-MOTORS
 ```
 
 Alternatively, select that branch on GitHub before choosing **Code → Download ZIP**, then extract the complete ZIP.
@@ -303,7 +385,7 @@ On 15 October 2026, the staged project was exported to a new Windows folder with
 - Current vehicle specifications, prices and inventory are demonstration data, not sales quotations.
 - Current per-vehicle and shared studio photographs are WebP assets generated for this project, with 960-pixel responsive variants for mobile and card layouts. Future AVIF media can be added through the documented `assets/cars` structure.
 - Vehicle hero URLs (including both `srcset` variants and detail-page posters) use [Spring MVC content versioning](https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-config/static-resources.html). Replacing a hero image and restarting the application produces a new URL, bypassing older cached responses while retaining the 30-day image cache. Original unversioned asset URLs remain available. If an already-open page shows broken images, reload it with Ctrl+F5; in IntelliJ, rebuild/restart the correct checkout first if resource changes have not been copied to `target/classes`.
-- Database-backed page rendering, authentication, paint configuration, door animation, engine audio and driving simulation remain out of scope. Phase 3.1 only adds the opt-in persistence foundation described above.
+- Database-backed vehicle page rendering, paint configuration, door animation, engine audio and driving simulation remain out of scope. Customer authentication is available through the opt-in `mysql` profile in Phase 3.2.
 
 ## Ferrari multi-angle gallery
 

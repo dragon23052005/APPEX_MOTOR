@@ -17,7 +17,7 @@ class FlywaySafetyTest {
             statement.execute("CREATE TABLE existing_customer_data (id INT PRIMARY KEY)");
             statement.execute("INSERT INTO existing_customer_data VALUES (42)");
             var flyway = Flyway.configure().dataSource(url, "sa", "")
-                .locations("classpath:db/migration").baselineOnMigrate(false).cleanDisabled(true).load();
+                .locations("classpath:db/migration/managed").baselineOnMigrate(false).cleanDisabled(true).load();
             assertThatThrownBy(flyway::migrate).isInstanceOf(FlywayException.class).hasMessageContaining("non-empty");
             assertThatThrownBy(flyway::clean).isInstanceOf(FlywayException.class).hasMessageContaining("cleanDisabled");
             try (var result = statement.executeQuery("SELECT id FROM existing_customer_data")) {

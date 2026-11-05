@@ -140,12 +140,15 @@ abstract class DatabaseContract {
     @Test
     void databaseRejectsInvalidAmountsStatusesAndImageOrdering() {
         var vehicle = vehicles.findBySlug("rimac-nevera").orElseThrow();
-        assertThatThrownBy(() -> jdbc.update("UPDATE vehicles SET price = -1 WHERE id = ?", vehicle.getId()))
-            .isInstanceOf(DataIntegrityViolationException.class);
-        assertThatThrownBy(() -> jdbc.update("UPDATE vehicles SET currency = NULL WHERE id = ?", vehicle.getId()))
-            .isInstanceOf(DataIntegrityViolationException.class);
-        assertThatThrownBy(() -> jdbc.update("UPDATE vehicles SET availability_status = 'INVALID' WHERE id = ?", vehicle.getId()))
-            .isInstanceOf(DataIntegrityViolationException.class);
+        assertCheckViolation(() -> jdbc.update("UPDATE vehicles SET price = -1 WHERE id = ?", vehicle.getId()), "ck_vehicles_price");
+        assertCheckViolation(() -> jdbc.update("UPDATE vehicles SET currency = NULL WHERE id = ?", vehicle.getId()), "ck_vehicles_currency");
+        assertCheckViolation(() -> jdbc.update("UPDATE vehicles SET availability_status = 'INVALID' WHERE id = ?", vehicle.getId()), "ck_vehicles_status");
+        assertThat(jdbc.queryForObject("SELECT price FROM vehicles WHERE id = ?", BigDecimal.class, vehicle.getId()))
+            .isEqualByComparingTo(vehicle.getPrice());
+        assertThat(jdbc.queryForObject("SELECT currency FROM vehicles WHERE id = ?", String.class, vehicle.getId()))
+            .isEqualTo(vehicle.getCurrency());
+        assertThat(jdbc.queryForObject("SELECT availability_status FROM vehicles WHERE id = ?", String.class, vehicle.getId()))
+            .isEqualTo(vehicle.getAvailabilityStatus().name());
         assertThatThrownBy(() -> jdbc.update("INSERT INTO vehicle_images (vehicle_id, image_url, alt_text, category, display_order) VALUES (?, '/test.webp', 'Test', 'HERO', 0)", vehicle.getId()))
             .isInstanceOf(DataIntegrityViolationException.class);
     }
@@ -181,6 +184,15 @@ abstract class DatabaseContract {
             .andExpect(model().attributeExists("gallery"))
             .andExpect(content().string(containsString("Explore 24 perspectives")));
         mvc.perform(get("/database-health")).andExpect(status().isNotFound());
+    }
+
+    private void assertCheckViolation(org.assertj.core.api.ThrowableAssert.ThrowingCallable write, String constraint) {
+        // MySQL reports CHECK failures as HY000/3819; H2 uses 23513. Spring's wrappers differ.
+        assertThatThrownBy(write).isInstanceOfSatisfying(org.springframework.dao.DataAccessException.class, failure ->
+            assertThat(failure.getMostSpecificCause()).isInstanceOfSatisfying(java.sql.SQLException.class, sql -> {
+                assertThat(sql.getErrorCode()).isIn(3819, 23513);
+                assertThat(sql.getMessage().toLowerCase(java.util.Locale.ROOT)).contains(constraint);
+            }));
     }
 
     private UserEntity createUser() {

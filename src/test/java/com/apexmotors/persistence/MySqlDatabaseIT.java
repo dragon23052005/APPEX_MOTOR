@@ -27,10 +27,13 @@ class MySqlDatabaseIT extends DatabaseContract {
     @Autowired TestRestTemplate http;
 
     @Container
-    static final MySQLContainer<?> MYSQL = new MySQLContainer<>("mysql:8.4")
-        .withDatabaseName("demotesting")
+    static final MySQLContainer<?> MYSQL = new MySQLContainer<>(
+        System.getProperty("apex.mysql.test-image", "mysql:8.4"))
+        .withDatabaseName("apex_motors")
         .withUsername("apex_test")
         .withPassword(UUID.randomUUID().toString())
+        .withUrlParam("connectionTimeZone", "UTC")
+        .withUrlParam("forceConnectionTimeZoneToSession", "true")
         .withCommand("--character-set-server=utf8mb4", "--collation-server=utf8mb4_0900_ai_ci", "--default-time-zone=+00:00")
         .withCreateContainerCmdModifier(command -> command.getHostConfig()
             .withPortBindings(new com.github.dockerjava.api.model.PortBinding(
@@ -39,14 +42,17 @@ class MySqlDatabaseIT extends DatabaseContract {
 
     @DynamicPropertySource
     static void mysqlProperties(DynamicPropertyRegistry properties) {
-        properties.add("spring.datasource.url", () -> MYSQL.getJdbcUrl() + "&connectionTimeZone=UTC");
+        properties.add("spring.datasource.url", MYSQL::getJdbcUrl);
         properties.add("spring.datasource.username", MYSQL::getUsername);
         properties.add("spring.datasource.password", MYSQL::getPassword);
     }
 
     @Test
-    void serverIsMySql84WithUtf8mb4AndInnoDb() {
-        assertThat(jdbc.queryForObject("SELECT VERSION()", String.class)).startsWith("8.4.");
+    void serverMatchesRequestedVersionWithUtf8mb4AndInnoDb() {
+        String requestedVersion = org.testcontainers.utility.DockerImageName.parse(MYSQL.getDockerImageName())
+            .getVersionPart().split("-", 2)[0];
+        assertThat(jdbc.queryForObject("SELECT VERSION()", String.class))
+            .matches("^" + java.util.regex.Pattern.quote(requestedVersion) + "(?:\\.|-|$).*");
         assertThat(jdbc.queryForObject("SELECT @@character_set_database", String.class)).isEqualTo("utf8mb4");
         List<String> engines = jdbc.queryForList("SELECT ENGINE FROM information_schema.tables WHERE table_schema = DATABASE()", String.class);
         assertThat(engines).isNotEmpty().allMatch("InnoDB"::equals);

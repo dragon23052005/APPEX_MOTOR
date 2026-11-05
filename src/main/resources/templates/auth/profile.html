@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/site :: head('Your profile — APEX MOTORS', 'Your personal APEX MOTORS account.')}"></head>
+<body class="account-page">
+<a class="account-skip" href="#account-main">Skip to account content</a>
+<nav th:replace="~{fragments/site :: nav(${activePage})}"></nav>
+<main id="account-main" class="account-profile">
+<header class="account-profile__heading"><div><p class="eyebrow">Your APEX account</p><h1>A space<br><span>of your own.</span></h1></div><a class="account-back" th:href="@{/collection}">Explore the collection <span aria-hidden="true">↗</span></a></header>
+<div class="account-alert" th:if="${param.updated != null}" role="status">Your profile has been updated.</div>
+<div class="account-profile__grid">
+    <aside class="account-identity">
+        <div class="account-monogram" aria-hidden="true" th:text="${#strings.toUpperCase(#strings.substring(account.fullName, 0, 1))}">A</div>
+        <h2 th:text="${account.fullName}">Your name</h2>
+        <p class="account-identity__email" th:text="${account.email}">you@example.com</p>
+        <span class="account-role" th:text="${account.role == 'ADMIN' ? 'Administrator' : 'Customer'}">Customer</span>
+        <p class="account-identity__note">Your contact details and account security, in one place.</p>
+        <form th:action="@{/logout}" method="post"><button class="account-signout" type="submit">Sign out <span aria-hidden="true">↗</span></button></form>
+        <img class="account-identity__image" src="/images/silver-grand-tourer-960.webp" alt="Silver grand tourer in the APEX studio" width="960" height="480">
+    </aside>
+    <div class="account-profile__forms">
+        <section class="account-card" aria-labelledby="details-title">
+            <p class="eyebrow">01 / Personal details</p><h2 id="details-title">The essentials.</h2>
+            <form class="account-form" th:action="@{/profile}" th:object="${profileForm}" method="post" novalidate>
+<div class="account-alert account-alert--error" th:if="${#fields.hasAnyErrors()}" role="alert" tabindex="-1" data-form-errors>
+    <strong>Please review your details.</strong><ul><li th:each="error : ${#fields.allErrors()}" th:text="${error}">Please check the form.</li></ul></div><div class="account-field">
+<label for="fullName">Full name</label>
+<div class="account-input">
+<input id="fullName" type="text" th:field="*{fullName}" autocomplete="name" maxlength="120" required
+    aria-describedby="fullName-error" th:attr="aria-invalid=${#fields.hasErrors('fullName')}">
+
+</div>
+
+<p id="fullName-error" class="field-error" th:if="${#fields.hasErrors('fullName')}" th:errors="*{fullName}">Check this field.</p>
+</div><div class="account-field">
+<label for="phone">Phone number (optional)</label>
+<div class="account-input">
+<input id="phone" type="tel" th:field="*{phone}" autocomplete="tel" maxlength="32"
+    aria-describedby="phone-error" th:attr="aria-invalid=${#fields.hasErrors('phone')}">
+
+</div>
+
+<p id="phone-error" class="field-error" th:if="${#fields.hasErrors('phone')}" th:errors="*{phone}">Check this field.</p>
+</div>
+                <div class="account-readonly"><span>Email address</span><strong th:text="${account.email}">you@example.com</strong><p>To change your email address, <a th:href="@{/contact}">contact our team</a>.</p></div>
+                <button class="account-submit" type="submit">Save details <span aria-hidden="true">↗</span></button>
+            </form>
+        </section>
+        <section class="account-card" aria-labelledby="security-title">
+            <p class="eyebrow">02 / Account security</p><h2 id="security-title">Keep it yours.</h2>
+            <p class="account-card__intro">Changing your password signs you out on all devices.</p>
+            <form class="account-form" th:action="@{/profile/password}" th:object="${passwordForm}" method="post" novalidate>
+<div class="account-alert account-alert--error" th:if="${#fields.hasAnyErrors()}" role="alert" tabindex="-1" data-form-errors>
+    <strong>Please review your details.</strong><ul><li th:each="error : ${#fields.allErrors()}" th:text="${error}">Please check the form.</li></ul></div><div class="account-field">
+<label for="currentPassword">Current password</label>
+<div class="account-password">
+<input id="currentPassword" type="password" name="currentPassword" autocomplete="current-password" maxlength="72" required
+    aria-describedby="currentPassword-error" th:attr="aria-invalid=${#fields.hasErrors('currentPassword')}">
+<button class="password-toggle" type="button" data-password-toggle="currentPassword" aria-label="Show current password" aria-pressed="false" hidden>Show</button>
+</div>
+
+<p id="currentPassword-error" class="field-error" th:if="${#fields.hasErrors('currentPassword')}" th:errors="*{currentPassword}">Check this field.</p>
+</div><div class="account-field">
+<label for="newPassword">New password</label>
+<div class="account-password">
+<input id="newPassword" type="password" name="newPassword" autocomplete="new-password" maxlength="64" required
+    aria-describedby="newPassword-error newPassword-hint" th:attr="aria-invalid=${#fields.hasErrors('newPassword')}">
+<button class="password-toggle" type="button" data-password-toggle="newPassword" aria-label="Show new password" aria-pressed="false" hidden>Show</button>
+</div>
+<p id="newPassword-hint" class="account-hint">12–64 characters with uppercase, lowercase and a number. Maximum 72 UTF-8 bytes.</p>
+<p id="newPassword-error" class="field-error" th:if="${#fields.hasErrors('newPassword')}" th:errors="*{newPassword}">Check this field.</p>
+</div><div class="account-field">
+<label for="change-confirmPassword">Confirm new password</label>
+<div class="account-password">
+<input id="change-confirmPassword" type="password" name="confirmPassword" autocomplete="new-password" maxlength="64" required
+    aria-describedby="change-confirmPassword-error" th:attr="aria-invalid=${#fields.hasErrors('confirmPassword')}">
+<button class="password-toggle" type="button" data-password-toggle="change-confirmPassword" aria-label="Show confirm new password" aria-pressed="false" hidden>Show</button>
+</div>
+
+<p id="change-confirmPassword-error" class="field-error" th:if="${#fields.hasErrors('confirmPassword')}" th:errors="*{confirmPassword}">Check this field.</p>
+</div>
+                <button class="account-submit account-submit--secondary" type="submit">Change password <span aria-hidden="true">↗</span></button>
+            </form>
+        </section>
+    </div>
+</div>
+</main>
+<th:block th:replace="~{fragments/site :: scripts}"></th:block>
+</body>
+</html>
