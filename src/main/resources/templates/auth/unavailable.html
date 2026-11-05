@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/site :: head('Account access — APEX MOTORS', 'Your personal APEX MOTORS account.')}"></head>
+<body class="account-page">
+<a class="account-skip" href="#account-main">Skip to account content</a>
+<nav th:replace="~{fragments/site :: nav(${activePage})}"></nav>
+<main id="account-main" class="account-message">
+<p class="eyebrow">APEX / Private showroom</p>
+<h1>The showroom<br>is yours to explore.</h1>
+<p>Account services are not available in this showroom preview. You can still explore every vehicle or speak with our team.</p>
+<div class="account-message__actions"><a class="account-submit" th:href="@{/collection}">Explore the collection ↗</a><a class="account-back" th:href="@{/contact}">Contact our team</a></div>
+</main>
+<th:block th:replace="~{fragments/site :: scripts}"></th:block>
+</body>
+</html>

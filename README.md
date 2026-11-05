@@ -1,8 +1,8 @@
-# APEX MOTORS — Phase 3.1 Database Foundation
+# APEX MOTORS — Phase 3.2 Authentication & Authorization
 
 APEX MOTORS is a server-rendered luxury automotive showroom built with Java 21, Spring Boot, Spring MVC, Thymeleaf, Bootstrap and GSAP. Phase 2 preserves the Phase 1 routes and backend architecture while replacing the previous real-time 3D experiment with a cinematic presentation and a reusable image-sequence 360° viewer.
 
-Phase 3.1 adds an opt-in MySQL 8.4 persistence foundation. The default and `dev` profiles still run the complete Phase 2 showroom without a database. Authentication and booking workflows are not implemented.
+Phase 3.2 adds database-backed customer registration, sign-in, profile editing and password changes to the Phase 3.1 persistence foundation. Account features are enabled only with the `mysql` profile. The default and `dev` profiles still run the complete showroom without a database. Booking workflows and the administrator interface remain reserved for later phases.
 
 ## Phase 3.1 architecture
 
@@ -24,7 +24,66 @@ Flyway is the schema authority. Hibernate uses `ddl-auto=validate`, Open Session
 
 The automatic Flyway migrations are in `src/main/resources/db/migration/managed/`. Their original contents/checksums are preserved. `V1__database_foundation.sql` creates tables, foreign keys, checks and indexes. `V2__seed_showroom_catalog.sql` inserts two roles, eight brands, the eight current showroom vehicles and eight hero URL records. Prices are the existing demonstration EUR prices, not new quotations. Availability is `UNSPECIFIED` because the source catalog does not track inventory status. Brand descriptions remain null because none exist in the source. The Ferrari 24-image manifest remains authoritative and is not duplicated in MySQL. Existing presentation-only fields (powertrain, highlights, body style, etc.) remain intact in the in-memory catalog.
 
-Versioned seed migrations run once under Flyway's history/locking mechanism; restarting does not overwrite local data. No user or administrator account is seeded. The foundation accepts encoded bcrypt hashes, rejects plaintext at entity validation, and deliberately supplies no password encoder or authentication API. All stored `DATETIME(6)` values represent UTC; future forms must convert users' local times at their boundary.
+Versioned seed migrations run once under Flyway's history/locking mechanism; restarting does not overwrite local data. No user or administrator account is seeded. Phase 3.2 uses BCrypt to create password hashes and the existing entity validation still rejects plaintext hashes. All stored `DATETIME(6)` values represent UTC; future forms must convert users' local times at their boundary.
+
+## Phase 3.2 accounts
+
+`com.apexmotors.auth` contains Spring Security configuration, a database-backed `UserDetailsService`, transactional account services, form DTOs, controllers and session invalidation. Spring Boot manages the Spring Security 6 dependency versions. Authentication uses an HTTP session, not JWTs or browser storage. Existing `users` and `roles` tables are reused; no new migration or authentication table is required, and managed V1/V2 remain unchanged.
+
+| Route | Access and behavior with `mysql` active |
+|---|---|
+| `GET /login`, `POST /login` | Public sign-in; Spring Security processes the POST using email/password |
+| `GET /register`, `POST /register` | Public registration; new accounts always receive CUSTOMER |
+| `POST /logout` | CSRF-protected sign-out; invalidates the current session |
+| `GET /profile` | CUSTOMER or ADMIN; shows only the signed-in account's public profile fields |
+| `POST /profile` | Updates the signed-in user's full name and optional phone only |
+| `POST /profile/password` | Requires the current password, validates the new password and signs out all registered sessions after commit |
+| `/admin`, `/admin/**` | ADMIN only; no administrator pages or operations exist yet, so authorized requests currently return 404 |
+| `/appointments/**`, `/favorites/**` | Reserved for CUSTOMER/ADMIN; workflows are not implemented |
+| `/access-denied` | A branded 403 page, also used for invalid/expired CSRF submissions |
+| Existing showroom routes and assets | Public, including Ferrari gallery content |
+
+Without `mysql`, the account navigation link is hidden and account/reserved routes return a friendly 503 page. Database and Spring Security auto-configuration are excluded only in this database-free mode. Existing public enquiry submissions remain demonstrations; with `mysql` active, they also require CSRF tokens supplied by Thymeleaf.
+
+### Run and use accounts locally
+
+1. Use JDK 21. Start MySQL and configure `DB_HOST`, `MYSQL_PORT`, `MYSQL_USER` and `MYSQL_PASSWORD` in your private `.env`, or use the ignored `application-local.properties` for an existing installation. Do not copy passwords into tracked source.
+2. Ensure `apex_motors` is empty or already managed by the unchanged Flyway V1/V2 migrations. If you previously ran the manual SQL client scripts, follow the existing-schema instructions below; do not enable automatic baselining or delete data to work around missing history.
+3. Run `.\mvnw.cmd spring-boot:run '-Dspring-boot.run.profiles=mysql'` (or `dev,mysql`). Open `/register`, create a customer account, then sign in at `/login`. No default account exists.
+4. Edit your name/phone at `/profile`. Email and role are displayed but cannot be changed through the public forms. Changing your password requires the old password and signs out the current browser and other sessions on their next request.
+
+The Compose target remains MySQL 8.4. If an existing MySQL instance already occupies port 3306, use it with the appropriate private configuration, or choose a different `MYSQL_PORT` for Compose. Do not stop or replace an unrelated database container to start this project.
+
+If `/login` displays “The showroom is yours to explore” and “Account services are not available”, the application is running without the `mysql` profile. Starting MySQL alone does not enable accounts. Stop the current application and select **APEX MOTORS MySQL** in IntelliJ's Run dropdown; this shared configuration activates `dev,mysql`. For a direct `ApexMotorsApplication` run, set program arguments to `--spring.profiles.active=mysql`. After restarting, open `http://localhost:8080/login`; the startup log must list `mysql` as an active profile. Keep the working directory at the project root so private database configuration is loaded.
+
+### Security decisions
+
+- Passwords require 12–64 characters, uppercase/lowercase letters and a number, and at most 72 UTF-8 bytes. They are hashed with BCrypt cost 12. Oversized login input is rejected without truncation or an error page. Passwords are never repopulated in HTML.
+- Email is trimmed and lowercased. Duplicate detection has both a user-friendly precheck and the database unique constraint for concurrent requests. Login errors use the same message for an unknown account, wrong password and disabled account.
+- Form binding explicitly allows only the documented fields. Client-supplied account IDs, roles, enabled flags, email changes and hashes cannot update another account or elevate privileges. Service writes are transactional and profile/password changes lock the account row.
+- Spring Security provides session fixation protection, CSRF and POST logout. Sessions use HttpOnly, SameSite=Lax cookies, cookie-only tracking and a 30-minute idle timeout. For an HTTPS deployment, set `SESSION_COOKIE_SECURE=true`; configure TLS and trusted proxy handling at deployment time.
+- Login restores a saved private GET path. Only a local allowlisted path is used; query strings, `next`/`redirect` parameters and saved URL hostnames are not used as destinations. `server.tomcat.use-relative-redirects=true` also keeps the servlet container from expanding these paths using the request's Host header.
+- Changing a password expires all of that account's sessions after the database transaction commits. The session registry is in memory and applies to a single application instance; distributed deployment needs shared sessions/invalidation. Role changes made by an operator require sign-out/sign-in to refresh authorities.
+- The existing public showroom remains public. New protected route families in future phases must be explicitly added to the authorization rules; do not assume new routes are automatically private.
+- No remember-me cookie, email verification, password recovery or login/registration rate limiting is included. Add abuse controls and account recovery before an internet-facing production release. This phase does not claim production deployment readiness.
+
+### Explicit initial ADMIN setup
+
+Register the intended owner's account normally first. A trusted database operator can then use a private copy of `tools/promote_admin.sql`: connect to the intended database, set its initially empty `@apex_admin_email` to the verified account's email, and execute it deliberately. Confirm the reported account and role, then sign out and sign in again. The empty script is a no-op; it creates no account or password, and neither Flyway nor application startup invokes it. Do not expose this procedure through a public endpoint or commit a filled-in local copy. `/admin/**` remains reserved for Phase 3.3.
+
+### Account verification
+
+```powershell
+# Unit, H2 account/security contracts, profile isolation, showroom regressions and packaging
+.\mvnw.cmd verify
+# All integration suites on the default MySQL 8.4 image; requires Docker
+.\mvnw.cmd verify -Pmysql-it
+# Same integration suites using a locally available MySQL release
+.\mvnw.cmd verify -Pmysql-it '-Dapex.mysql.test-image=mysql:8.0.36'
+node --test tools/vehicle-gallery.test.cjs
+```
+
+The image override changes only the isolated test containers, not application/Compose configuration. Results from MySQL 8.0.36 do not establish MySQL 8.4 compatibility. Tests never use the development database or its Docker volumes. `MySqlAuthenticationIT` runs the same 37 authentication scenarios as H2, including a real HTTP flow with cookies, rendered CSRF tokens and two concurrent sessions. Failsafe reports MySQL setup errors as failures instead of silently skipping them. See [PHASE3_AUTHENTICATION_REPORT.md](PHASE3_AUTHENTICATION_REPORT.md) for executed checks and remaining limitations.
 
 ## Local MySQL with Docker
 
@@ -140,12 +199,12 @@ Implementation and verification status: [PHASE3_DATABASE_REPORT.md](PHASE3_DATAB
 
 ## Start on another computer
 
-The Phase 3.1 implementation is on `phase-3-database-foundation`. It includes the existing Phase 2 showroom and keeps MySQL optional. Real MySQL verification remains incomplete as detailed in the implementation report.
+Phase 3.2 is developed on `phase-3-authentication`, starting from commit `8180e6d`. It includes the existing showroom and keeps MySQL optional. Publication of this branch is authorized; merging into `main` remains a separate action. Verification details are in `PHASE3_AUTHENTICATION_REPORT.md`.
 
-Clone **the `phase-3-database-foundation` branch** (these changes are not automatically merged into `main`):
+Clone **the `phase-3-authentication` branch** (these changes are not automatically merged into `main`):
 
 ```shell
-git clone --branch phase-3-database-foundation --single-branch https://github.com/dragon23052005/APPEX_MOTOR.git APEX-MOTORS
+git clone --branch phase-3-authentication --single-branch https://github.com/dragon23052005/APPEX_MOTOR.git APEX-MOTORS
 ```
 
 Alternatively, select that branch on GitHub before choosing **Code → Download ZIP**, then extract the complete ZIP.
@@ -326,7 +385,7 @@ On 15 October 2026, the staged project was exported to a new Windows folder with
 - Current vehicle specifications, prices and inventory are demonstration data, not sales quotations.
 - Current per-vehicle and shared studio photographs are WebP assets generated for this project, with 960-pixel responsive variants for mobile and card layouts. Future AVIF media can be added through the documented `assets/cars` structure.
 - Vehicle hero URLs (including both `srcset` variants and detail-page posters) use [Spring MVC content versioning](https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-config/static-resources.html). Replacing a hero image and restarting the application produces a new URL, bypassing older cached responses while retaining the 30-day image cache. Original unversioned asset URLs remain available. If an already-open page shows broken images, reload it with Ctrl+F5; in IntelliJ, rebuild/restart the correct checkout first if resource changes have not been copied to `target/classes`.
-- Database-backed page rendering, authentication, paint configuration, door animation, engine audio and driving simulation remain out of scope. Phase 3.1 only adds the opt-in persistence foundation described above.
+- Database-backed vehicle page rendering, paint configuration, door animation, engine audio and driving simulation remain out of scope. Customer authentication is available through the opt-in `mysql` profile in Phase 3.2.
 
 ## Ferrari multi-angle gallery
 

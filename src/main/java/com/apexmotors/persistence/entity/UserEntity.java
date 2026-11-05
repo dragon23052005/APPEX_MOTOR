@@ -51,6 +51,8 @@ public class UserEntity extends AuditedEntity {
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email == null ? null : email.strip().toLowerCase(Locale.ROOT); }
     public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
+    @JsonIgnore
+    public String getPasswordHash() { return passwordHash; }
     public String getPhone() { return phone; }
     public void setPhone(String phone) { this.phone = phone; }
     public boolean isEnabled() { return enabled; }

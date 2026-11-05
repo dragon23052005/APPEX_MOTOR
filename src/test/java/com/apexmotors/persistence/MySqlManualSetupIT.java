@@ -22,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class MySqlManualSetupIT {
     @Container
     static final MySQLContainer<?> MYSQL = new MySQLContainer<>(
-        System.getProperty("apex.mysql.manual-test-image", "mysql:8.4"))
+        System.getProperty("apex.mysql.manual-test-image", System.getProperty("apex.mysql.test-image", "mysql:8.4")))
         .withDatabaseName("manual_setup_test")
         .withUsername("root")
         .withPassword(UUID.randomUUID().toString())

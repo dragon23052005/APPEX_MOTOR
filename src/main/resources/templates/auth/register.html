@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/site :: head('Create an account — APEX MOTORS', 'Your personal APEX MOTORS account.')}"></head>
+<body class="account-page">
+<a class="account-skip" href="#account-main">Skip to account content</a>
+<nav th:replace="~{fragments/site :: nav(${activePage})}"></nav>
+<main id="account-main" class="account-shell account-shell--register">
+<aside class="account-story" aria-label="The APEX experience">
+    <img src="/images/black-hypercar.webp" alt="Sculpted black hypercar in the APEX studio" width="1774" height="887">
+    <div class="account-story__top"><span>APEX / Private showroom</span><span>Saigon, VN</span></div>
+    <div class="account-story__copy"><p class="eyebrow">For those who feel it.</p><h2>More than<br>a machine.</h2><p>A shared appreciation for exceptional engineering.<br>Your own space within APEX.</p></div>
+    <div class="account-story__bottom"><span>Considered. Curated. Personal.</span><span>01 / APEX</span></div>
+</aside>
+<section class="account-form-panel" aria-labelledby="register-title">
+    <a class="account-back" th:href="@{/collection}"><span aria-hidden="true">←</span> Back to the collection</a>
+    <p class="eyebrow account-kicker">An introduction to APEX</p>
+    <h1 id="register-title">Make it<br><span>personal.</span></h1>
+    <p class="account-intro">Create your account. Begin your next chapter.</p>
+    <form class="account-form" th:action="@{/register}" th:object="${registrationForm}" method="post" novalidate>
+<div class="account-alert account-alert--error" th:if="${#fields.hasAnyErrors()}" role="alert" tabindex="-1" data-form-errors>
+    <strong>Please review your details.</strong><ul><li th:each="error : ${#fields.allErrors()}" th:text="${error}">Please check the form.</li></ul></div><div class="account-field">
+<label for="fullName">Full name</label>
+<div class="account-input">
+<input id="fullName" type="text" th:field="*{fullName}" autocomplete="name" maxlength="120" required
+    aria-describedby="fullName-error" th:attr="aria-invalid=${#fields.hasErrors('fullName')}">
+
+</div>
+
+<p id="fullName-error" class="field-error" th:if="${#fields.hasErrors('fullName')}" th:errors="*{fullName}">Check this field.</p>
+</div><div class="account-field">
+<label for="email">Email address</label>
+<div class="account-input">
+<input id="email" type="email" th:field="*{email}" autocomplete="email" maxlength="254" required
+    aria-describedby="email-error" th:attr="aria-invalid=${#fields.hasErrors('email')}">
+
+</div>
+
+<p id="email-error" class="field-error" th:if="${#fields.hasErrors('email')}" th:errors="*{email}">Check this field.</p>
+</div><div class="account-field">
+<label for="password">Password</label>
+<div class="account-password">
+<input id="password" type="password" name="password" autocomplete="new-password" maxlength="64" required
+    aria-describedby="password-error password-hint" th:attr="aria-invalid=${#fields.hasErrors('password')}">
+<button class="password-toggle" type="button" data-password-toggle="password" aria-label="Show password" aria-pressed="false" hidden>Show</button>
+</div>
+<p id="password-hint" class="account-hint">12–64 characters with uppercase, lowercase and a number. Maximum 72 UTF-8 bytes.</p>
+<p id="password-error" class="field-error" th:if="${#fields.hasErrors('password')}" th:errors="*{password}">Check this field.</p>
+</div><div class="account-field">
+<label for="confirmPassword">Confirm password</label>
+<div class="account-password">
+<input id="confirmPassword" type="password" name="confirmPassword" autocomplete="new-password" maxlength="64" required
+    aria-describedby="confirmPassword-error" th:attr="aria-invalid=${#fields.hasErrors('confirmPassword')}">
+<button class="password-toggle" type="button" data-password-toggle="confirmPassword" aria-label="Show confirm password" aria-pressed="false" hidden>Show</button>
+</div>
+
+<p id="confirmPassword-error" class="field-error" th:if="${#fields.hasErrors('confirmPassword')}" th:errors="*{confirmPassword}">Check this field.</p>
+</div>
+        <button class="account-submit" type="submit">Create account <span aria-hidden="true">↗</span></button>
+    </form>
+    <p class="account-switch">Already part of APEX? <a th:href="@{/login}">Sign in</a></p>
+</section>
+</main>
+<th:block th:replace="~{fragments/site :: scripts}"></th:block>
+</body>
+</html>
