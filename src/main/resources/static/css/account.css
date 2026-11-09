@@ -59,7 +59,7 @@
 .account-role { display: inline-block; padding: 5px 11px; border: 1px solid #72664e; color: #dfcfab; font-size: .67rem; text-transform: uppercase; letter-spacing: .1em; margin: 4px 0 22px; }
 .account-identity__note { color: var(--account-muted); font-size: .8rem; }
 .account-signout { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 12px 0; min-height: 48px; border: 0; border-top: 1px solid var(--line); background: transparent; color: #eee; font-size: .8rem; }
-.account-identity__image { width: calc(100% + 56px); max-width: none; margin: 22px -28px -28px; opacity: .8; }
+.account-identity__image { width: calc(100% + 56px); height: auto; max-width: none; margin: 22px -28px -28px; opacity: .8; }
 .account-profile__forms { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: start; }
 .account-card { padding: 30px; border: 1px solid var(--line); background: #101112; min-width: 0; }
 .account-card h2 { font-family: var(--display); font-size: 1.6rem; letter-spacing: -.04em; margin: 15px 0 26px; }
